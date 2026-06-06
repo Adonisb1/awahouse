@@ -103,7 +103,70 @@ CREATE POLICY "reviews_update_own" ON public.reviews
   FOR UPDATE USING (auth.uid() = reviewer_id);
 
 -- Admin can do everything
-CREATE POLICY "reviews_admin_all" ON public.reviews
+  CREATE POLICY "reviews_admin_all" ON public.reviews
   FOR ALL USING (
     EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role = 'admin')
   );
+
+-- ============================================================
+-- Table: escrow_transactions
+-- ============================================================
+ALTER TABLE public.escrow_transactions ENABLE ROW LEVEL SECURITY;
+
+-- Participant can read their own escrows
+CREATE POLICY "escrow_select_participant" ON public.escrow_transactions
+  FOR SELECT USING (
+    auth.uid() = tenant_id OR auth.uid() = landlord_id OR auth.uid() = agent_id
+  );
+
+-- Tenant can insert escrows
+CREATE POLICY "escrow_insert_tenant" ON public.escrow_transactions
+  FOR INSERT WITH CHECK (auth.uid() = tenant_id);
+
+-- Participant can update escrows
+CREATE POLICY "escrow_update_participant" ON public.escrow_transactions
+  FOR UPDATE USING (
+    auth.uid() = tenant_id OR auth.uid() = landlord_id OR auth.uid() = agent_id
+  );
+
+-- Admin can do everything
+CREATE POLICY "escrow_admin_all" ON public.escrow_transactions
+  FOR ALL USING (
+    EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role = 'admin')
+  );
+
+-- ============================================================
+-- Table: transaction_logs
+-- ============================================================
+ALTER TABLE public.transaction_logs ENABLE ROW LEVEL SECURITY;
+
+-- Participants can read logs for their escrows
+CREATE POLICY "transaction_logs_select_participant" ON public.transaction_logs
+  FOR SELECT USING (
+    EXISTS (
+      SELECT 1 FROM public.escrow_transactions e
+      WHERE e.id = escrow_id
+        AND (e.tenant_id = auth.uid() OR e.landlord_id = auth.uid() OR e.agent_id = auth.uid())
+    )
+  );
+
+-- Admin can do everything
+CREATE POLICY "transaction_logs_admin_all" ON public.transaction_logs
+  FOR ALL USING (
+    EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role = 'admin')
+  );
+
+-- ============================================================
+-- Table: notifications
+-- ============================================================
+ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
+
+-- User can read/update their own notifications
+CREATE POLICY "notifications_select_own" ON public.notifications
+  FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "notifications_update_own" ON public.notifications
+  FOR UPDATE USING (auth.uid() = user_id);
+
+-- System can insert notifications
+CREATE POLICY "notifications_insert_system" ON public.notifications
+  FOR INSERT WITH CHECK (true);

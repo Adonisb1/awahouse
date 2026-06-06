@@ -53,6 +53,17 @@ enum ReviewType {
   agent
 }
 
+enum EscrowStatus {
+  pending_payment
+  funds_held
+  docs_verified
+  key_handover_pending
+  completed
+  refunded
+  cancelled
+  disputed
+}
+
 model User {
   id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   phone      String   @unique
@@ -72,6 +83,11 @@ model User {
   savedProperties SavedProperty[]
   reviewsWritten  Review[]       @relation("ReviewsWritten")
   reviewsReceived Review[]       @relation("ReviewsReceived")
+  escrowTransactions EscrowTransaction[] @relation("TenantEscrows")
+  escrowAsLandlord   EscrowTransaction[] @relation("LandlordEscrows")
+  escrowAsAgent      EscrowTransaction[] @relation("AgentEscrows")
+  notifications   Notification[]
+  transactionLogs TransactionLog[]
 
   @@map("users")
 }
@@ -100,6 +116,7 @@ model Property {
   images   PropertyImage[]
   savedBy  SavedProperty[]
   reviews  Review[]
+  escrows  EscrowTransaction[]
 
   @@index([lga])
   @@index([type])
@@ -151,6 +168,7 @@ model Review {
   reviewer User      @relation("ReviewsWritten", fields: [reviewerId], references: [id])
   reviewee User      @relation("ReviewsReceived", fields: [revieweeId], references: [id])
   property Property? @relation(fields: [propertyId], references: [id])
+  escrow   EscrowTransaction? @relation(fields: [escrowId], references: [id])
 
   @@unique([reviewerId, escrowId])
   @@index([propertyId])
@@ -174,4 +192,70 @@ model Verification {
 
   @@unique([userId, type])
   @@map("verifications")
+}
+
+model EscrowTransaction {
+  id                String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  propertyId        String       @map("property_id") @db.Uuid
+  tenantId          String       @map("tenant_id") @db.Uuid
+  landlordId        String       @map("landlord_id") @db.Uuid
+  agentId           String?      @map("agent_id") @db.Uuid
+  status            EscrowStatus @default(pending_payment)
+  amountKobo        BigInt       @map("amount_kobo")
+  platformFeeKobo   BigInt       @map("platform_fee_kobo")
+  landlordPayoutKobo BigInt      @map("landlord_payout_kobo")
+  paystackReference String?      @map("paystack_reference")
+  paystackAccessCode String?     @map("paystack_access_code")
+  disputeReason     String?      @map("dispute_reason")
+  disputedAt        DateTime?    @map("disputed_at")
+  completedAt       DateTime?    @map("completed_at")
+  rentMonthly       Boolean      @default(false) @map("rent_monthly")
+  isDeleted         Boolean      @default(false) @map("is_deleted")
+  createdAt         DateTime     @default(now()) @map("created_at")
+  updatedAt         DateTime     @updatedAt @map("updated_at")
+
+  tenant   User        @relation("TenantEscrows", fields: [tenantId], references: [id])
+  landlord User        @relation("LandlordEscrows", fields: [landlordId], references: [id])
+  agent    User?       @relation("AgentEscrows", fields: [agentId], references: [id])
+  property Property    @relation(fields: [propertyId], references: [id])
+  logs     TransactionLog[]
+  reviews  Review[]
+
+  @@index([tenantId])
+  @@index([landlordId])
+  @@index([status])
+  @@index([paystackReference])
+  @@map("escrow_transactions")
+}
+
+model TransactionLog {
+  id         String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  escrowId   String       @map("escrow_id") @db.Uuid
+  fromStatus EscrowStatus @map("from_status")
+  toStatus   EscrowStatus @map("to_status")
+  actorId    String       @map("actor_id") @db.Uuid
+  reason     String?
+  createdAt  DateTime     @default(now()) @map("created_at")
+
+  escrow EscrowTransaction @relation(fields: [escrowId], references: [id])
+  actor  User              @relation(fields: [actorId], references: [id])
+
+  @@index([escrowId])
+  @@map("transaction_logs")
+}
+
+model Notification {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  title     String
+  body      String
+  link      String?
+  isRead    Boolean  @default(false) @map("is_read")
+  channel   String   @default("in_app")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+  @@map("notifications")
 }
