@@ -32,6 +32,27 @@ enum VerificationStatus {
   rejected
 }
 
+enum PropertyType {
+  apartment
+  duplex
+  bungalow
+  studio
+  commercial
+}
+
+enum VerificationBadge {
+  pending
+  agent_verified
+  title_confirmed
+  fully_verified
+}
+
+enum ReviewType {
+  property
+  landlord
+  agent
+}
+
 model User {
   id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   phone      String   @unique
@@ -47,8 +68,94 @@ model User {
   updatedAt  DateTime @updatedAt @map("updated_at")
 
   verifications Verification[]
+  properties    Property[]
+  savedProperties SavedProperty[]
+  reviewsWritten  Review[]       @relation("ReviewsWritten")
+  reviewsReceived Review[]       @relation("ReviewsReceived")
 
   @@map("users")
+}
+
+model Property {
+  id                String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  ownerId           String           @map("owner_id") @db.Uuid
+  title             String
+  description       String?
+  address           String?
+  lga               String?
+  type              PropertyType
+  bedrooms          Int              @default(1)
+  bathrooms         Int              @default(1)
+  priceKobo         BigInt           @map("price_kobo")
+  isAvailable       Boolean          @default(true) @map("is_available")
+  isDeleted         Boolean          @default(false) @map("is_deleted")
+  verificationBadge VerificationBadge @default(pending) @map("verification_badge")
+  latitude          Float?
+  longitude         Float?
+  metadata          Json?
+  createdAt         DateTime         @default(now()) @map("created_at")
+  updatedAt         DateTime         @updatedAt @map("updated_at")
+
+  owner    User             @relation(fields: [ownerId], references: [id])
+  images   PropertyImage[]
+  savedBy  SavedProperty[]
+  reviews  Review[]
+
+  @@index([lga])
+  @@index([type])
+  @@index([isAvailable, isDeleted])
+  @@map("properties")
+}
+
+model PropertyImage {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  propertyId String   @map("property_id") @db.Uuid
+  url        String
+  thumbnail  String?
+  alt        String?
+  sortOrder  Int      @default(0) @map("sort_order")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@index([propertyId])
+  @@map("property_images")
+}
+
+model SavedProperty {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId     String   @map("user_id") @db.Uuid
+  propertyId String   @map("property_id") @db.Uuid
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, propertyId])
+  @@map("saved_properties")
+}
+
+model Review {
+  id          String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  reviewerId  String     @map("reviewer_id") @db.Uuid
+  revieweeId  String     @map("reviewee_id") @db.Uuid
+  propertyId  String?    @map("property_id") @db.Uuid
+  escrowId    String?    @map("escrow_id") @db.Uuid
+  type        ReviewType
+  rating      Int
+  comment     String?
+  isVerified  Boolean    @default(false) @map("is_verified")
+  isPublished Boolean    @default(true) @map("is_published")
+  createdAt   DateTime   @default(now()) @map("created_at")
+
+  reviewer User      @relation("ReviewsWritten", fields: [reviewerId], references: [id])
+  reviewee User      @relation("ReviewsReceived", fields: [revieweeId], references: [id])
+  property Property? @relation(fields: [propertyId], references: [id])
+
+  @@unique([reviewerId, escrowId])
+  @@index([propertyId])
+  @@index([revieweeId])
+  @@map("reviews")
 }
 
 model Verification {
