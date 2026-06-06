@@ -1,0 +1,12 @@
+[build]
+builder = "nixpacks"
+buildCommand = "pnpm install"
+
+[[services]]
+name = "web"
+runtime = "node"
+
+[[services]]
+name = "worker"
+runtime = "node"
+command = "pnpm run worker"
