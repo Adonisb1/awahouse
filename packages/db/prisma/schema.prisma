@@ -1,0 +1,70 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum UserRole {
+  tenant
+  landlord
+  agent
+  admin
+}
+
+enum VerificationType {
+  nin
+  lasrera
+  esvarbon
+  niesv
+  aean
+  ercaan
+  redan
+  property_title
+}
+
+enum VerificationStatus {
+  pending
+  approved
+  rejected
+}
+
+model User {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  phone      String   @unique
+  email      String?
+  role       UserRole @default(tenant)
+  firstName  String?  @map("first_name")
+  lastName   String?  @map("last_name")
+  ninHash    String?  @map("nin_hash")
+  avatarUrl  String?  @map("avatar_url")
+  rentScore  Int      @default(500) @map("rent_score")
+  isDeleted  Boolean  @default(false) @map("is_deleted")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  verifications Verification[]
+
+  @@map("users")
+}
+
+model Verification {
+  id           String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId       String           @map("user_id") @db.Uuid
+  type         VerificationType
+  status       VerificationStatus @default(pending)
+  metadata     Json?
+  documentUrl  String?          @map("document_url")
+  reviewerId   String?          @map("reviewer_id") @db.Uuid
+  reviewedAt   DateTime?        @map("reviewed_at")
+  createdAt    DateTime         @default(now()) @map("created_at")
+  updatedAt    DateTime         @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, type])
+  @@map("verifications")
+}
