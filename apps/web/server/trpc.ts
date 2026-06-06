@@ -1,4 +1,5 @@
 import { initTRPC, TRPCError } from '@trpc/server';
+import superjson from 'superjson';
 import { Ratelimit } from '@upstash/ratelimit';
 import { Redis } from '@upstash/redis';
 import type { Role } from '@awahouse/types';
@@ -15,7 +16,9 @@ const rateLimiter = new Ratelimit({
   analytics: true,
 });
 
-const t = initTRPC.context<Context>().create();
+const t = initTRPC.context<Context>().create({
+  transformer: superjson,
+});
 
 const authMiddleware = t.middleware(({ ctx, next }) => {
   if (!ctx.userId) {

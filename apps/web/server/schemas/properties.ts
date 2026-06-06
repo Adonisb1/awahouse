@@ -16,7 +16,17 @@ export const createPropertyInput = z.object({
   longitude: z.number().min(-180).max(180).optional(),
 });
 
-export const updatePropertyInput = createPropertyInput.partial().extend({
+export const updatePropertyInput = z.object({
+  title: z.string().min(5).max(200).optional(),
+  description: z.string().max(2000).optional(),
+  address: z.string().max(500).optional(),
+  lga: z.enum(LGA_LIST).optional(),
+  type: propertyTypeEnum.optional(),
+  bedrooms: z.number().int().min(0).max(50).optional(),
+  bathrooms: z.number().int().min(0).max(50).optional(),
+  priceKobo: z.bigint().positive().optional(),
+  latitude: z.number().min(-90).max(90).optional(),
+  longitude: z.number().min(-180).max(180).optional(),
   isAvailable: z.boolean().optional(),
 });
 
@@ -40,11 +50,16 @@ export const propertyIdInput = z.object({
 
 export const uploadImagesInput = z.object({
   propertyId: z.string().uuid('Invalid property ID'),
-  images: z.array(z.object({
-    fileName: z.string().min(1),
-    fileType: z.string().min(1),
-    fileBase64: z.string().min(1),
-  })).min(1, 'At least one image required').max(10, 'Maximum 10 images'),
+  images: z
+    .array(
+      z.object({
+        fileName: z.string().min(1),
+        fileType: z.string().min(1),
+        fileBase64: z.string().min(1),
+      }),
+    )
+    .min(1, 'At least one image required')
+    .max(10, 'Maximum 10 images'),
 });
 
 export const savePropertyInput = z.object({
