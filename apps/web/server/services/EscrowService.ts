@@ -22,7 +22,7 @@ const VALID_TRANSITIONS: StateTransition[] = [
   { from: 'disputed', to: 'refunded' },
 ];
 
-function calculateFees(amountKobo: bigint): { platformFeeKobo: bigint; landlordPayoutKobo: bigint } {
+export function calculateFees(amountKobo: bigint): { platformFeeKobo: bigint; landlordPayoutKobo: bigint } {
   const fee = BigInt(Math.max(Math.round(Number(amountKobo) * 0.015), 500_000));
   return {
     platformFeeKobo: fee,
