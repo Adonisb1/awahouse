@@ -11,6 +11,7 @@ import {
 } from '../schemas/escrow';
 import { escrowService } from '../services/EscrowService';
 import { rentScoreService } from '../services/RentScoreService';
+import { notificationService } from '../services/NotificationService';
 
 export const escrowRouter = router({
   initiate: tenantProcedure.input(initiateEscrowInput).mutation(async ({ ctx, input }) => {
@@ -43,6 +44,12 @@ export const escrowRouter = router({
 
     if (escrow.rentMonthly) {
       await rentScoreService.scheduleInstalments(input.escrowId, new Date(), escrow.amountKobo);
+      await notificationService.sendInApp(
+        ctx.userId!,
+        'Instalment Plan Created',
+        'Your 12-month instalment plan is ready. First payment due in 30 days.',
+        '/rent-instalments',
+      );
     }
 
     return {
@@ -56,6 +63,12 @@ export const escrowRouter = router({
   raiseDispute: tenantProcedure.input(raiseDisputeInput).mutation(async ({ ctx, input }) => {
     const escrow = await escrowService.raiseDispute(input.escrowId, ctx.userId!, input.reason);
     await rentScoreService.recordEvent(ctx.userId!, 'dispute_raised', input.escrowId);
+    await notificationService.sendInApp(
+      escrow.landlordId,
+      'Dispute Raised',
+      'A dispute has been raised on your escrow. An admin will review it shortly.',
+      '/admin/dashboard',
+    );
     return { success: true };
   }),
 
