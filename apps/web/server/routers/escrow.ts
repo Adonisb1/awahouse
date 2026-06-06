@@ -9,45 +9,64 @@ import {
   adminRefundInput,
   adminResolveDisputeInput,
 } from '../schemas/escrow';
+import { escrowService } from '../services/EscrowService';
+import { TRPCError } from '@trpc/server';
 
 export const escrowRouter = router({
   initiate: tenantProcedure.input(initiateEscrowInput).mutation(async ({ ctx, input }) => {
-    // escrow-agent implements
-    return { success: true, escrowId: 'stub-escrow-id' };
+    const result = await escrowService.initiate(
+      ctx.userId!,
+      input.propertyId,
+      input.amountKobo,
+      input.rentMonthly,
+    );
+    return {
+      success: true,
+      escrowId: result.escrow.id,
+      authorizationUrl: result.authorizationUrl,
+      reference: result.reference,
+    };
   }),
 
   getById: authedProcedure.input(escrowIdInput).query(async ({ ctx, input }) => {
-    // escrow-agent implements
-    return null;
+    return escrowService.getById(input.id, ctx.userId!);
   }),
 
   list: authedProcedure.input(listEscrowsInput).query(async ({ ctx, input }) => {
-    // escrow-agent implements
-    return { items: [], total: 0 };
+    return escrowService.list(ctx.userId!, input.status, input.page, input.limit);
   }),
 
   confirmHandover: tenantProcedure.input(confirmHandoverInput).mutation(async ({ ctx, input }) => {
-    // escrow-agent implements
+    await escrowService.confirmHandover(input.escrowId, ctx.userId!);
     return { success: true };
   }),
 
   raiseDispute: tenantProcedure.input(raiseDisputeInput).mutation(async ({ ctx, input }) => {
-    // escrow-agent implements
+    await escrowService.raiseDispute(input.escrowId, ctx.userId!, input.reason);
+    return { success: true };
+  }),
+
+  cancel: authedProcedure.input(escrowIdInput).mutation(async ({ ctx, input }) => {
+    await escrowService.cancel(input.id, ctx.userId!);
     return { success: true };
   }),
 
   adminRelease: adminProcedure.input(adminReleaseInput).mutation(async ({ ctx, input }) => {
-    // escrow-agent implements
+    await escrowService.adminRelease(input.escrowId, ctx.userId!);
     return { success: true };
   }),
 
   adminRefund: adminProcedure.input(adminRefundInput).mutation(async ({ ctx, input }) => {
-    // escrow-agent implements
+    await escrowService.adminRefund(input.escrowId, ctx.userId!);
     return { success: true };
   }),
 
   adminResolveDispute: adminProcedure.input(adminResolveDisputeInput).mutation(async ({ ctx, input }) => {
-    // escrow-agent implements
-    return { success: true, outcome: 'completed' };
+    if (input.outcome === 'completed') {
+      await escrowService.adminRelease(input.escrowId, ctx.userId!);
+    } else {
+      await escrowService.adminRefund(input.escrowId, ctx.userId!);
+    }
+    return { success: true, outcome: input.outcome };
   }),
 });
