@@ -10,7 +10,7 @@ import {
   adminResolveDisputeInput,
 } from '../schemas/escrow';
 import { escrowService } from '../services/EscrowService';
-import { TRPCError } from '@trpc/server';
+import { rentScoreService } from '../services/RentScoreService';
 
 export const escrowRouter = router({
   initiate: tenantProcedure.input(initiateEscrowInput).mutation(async ({ ctx, input }) => {
@@ -38,6 +38,13 @@ export const escrowRouter = router({
 
   confirmHandover: tenantProcedure.input(confirmHandoverInput).mutation(async ({ ctx, input }) => {
     const escrow = await escrowService.confirmHandover(input.escrowId, ctx.userId!);
+
+    await rentScoreService.recordEvent(ctx.userId!, 'escrow_completed', input.escrowId);
+
+    if (escrow.rentMonthly) {
+      await rentScoreService.scheduleInstalments(input.escrowId, new Date(), escrow.amountKobo);
+    }
+
     return {
       success: true,
       showReviewPrompt: true,
@@ -47,7 +54,8 @@ export const escrowRouter = router({
   }),
 
   raiseDispute: tenantProcedure.input(raiseDisputeInput).mutation(async ({ ctx, input }) => {
-    await escrowService.raiseDispute(input.escrowId, ctx.userId!, input.reason);
+    const escrow = await escrowService.raiseDispute(input.escrowId, ctx.userId!, input.reason);
+    await rentScoreService.recordEvent(ctx.userId!, 'dispute_raised', input.escrowId);
     return { success: true };
   }),
 

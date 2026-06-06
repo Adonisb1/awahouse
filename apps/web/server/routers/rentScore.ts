@@ -1,14 +1,14 @@
 import { authedProcedure, router } from '../trpc';
 import { getRentScoreInput, listScoreEventsInput } from '../schemas/rent';
+import { rentScoreService } from '../services/RentScoreService';
 
 export const rentScoreRouter = router({
   get: authedProcedure.input(getRentScoreInput).query(async ({ ctx, input }) => {
-    // rent-agent implements
-    return { score: 500, userId: ctx.userId };
+    const userId = input.userId ?? ctx.userId!;
+    return rentScoreService.getScore(userId);
   }),
 
   history: authedProcedure.input(listScoreEventsInput).query(async ({ ctx, input }) => {
-    // rent-agent implements
-    return { items: [], total: 0 };
+    return rentScoreService.getScoreHistory(ctx.userId!, input.page, input.limit);
   }),
 });
