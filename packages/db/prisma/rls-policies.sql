@@ -170,3 +170,29 @@ CREATE POLICY "notifications_update_own" ON public.notifications
 -- System can insert notifications
 CREATE POLICY "notifications_insert_system" ON public.notifications
   FOR INSERT WITH CHECK (true);
+
+-- ============================================================
+-- Table: rent_instalments
+-- ============================================================
+ALTER TABLE public.rent_instalments ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "rent_instalments_select_own" ON public.rent_instalments
+  FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "rent_instalments_update_own" ON public.rent_instalments
+  FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "rent_instalments_admin_all" ON public.rent_instalments
+  FOR ALL USING (
+    EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role = 'admin')
+  );
+
+-- ============================================================
+-- Table: rent_score_events
+-- ============================================================
+ALTER TABLE public.rent_score_events ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "rent_score_events_select_own" ON public.rent_score_events
+  FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "rent_score_events_admin_all" ON public.rent_score_events
+  FOR ALL USING (
+    EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role = 'admin')
+  );

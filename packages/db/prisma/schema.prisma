@@ -64,6 +64,21 @@ enum EscrowStatus {
   disputed
 }
 
+enum RentInstalmentStatus {
+  scheduled
+  paid
+  overdue
+  missed
+}
+
+enum RentScoreEventType {
+  on_time_payment
+  late_payment
+  missed_payment
+  escrow_completed
+  dispute_raised
+}
+
 model User {
   id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   phone      String   @unique
@@ -86,8 +101,10 @@ model User {
   escrowTransactions EscrowTransaction[] @relation("TenantEscrows")
   escrowAsLandlord   EscrowTransaction[] @relation("LandlordEscrows")
   escrowAsAgent      EscrowTransaction[] @relation("AgentEscrows")
-  notifications   Notification[]
-  transactionLogs TransactionLog[]
+  notifications    Notification[]
+  transactionLogs  TransactionLog[]
+  rentInstalments  RentInstalment[]
+  rentScoreEvents  RentScoreEvent[]
 
   @@map("users")
 }
@@ -220,6 +237,8 @@ model EscrowTransaction {
   property Property    @relation(fields: [propertyId], references: [id])
   logs     TransactionLog[]
   reviews  Review[]
+  instalments RentInstalment[]
+  scoreEvents RentScoreEvent[]
 
   @@index([tenantId])
   @@index([landlordId])
@@ -258,4 +277,45 @@ model Notification {
 
   @@index([userId, isRead])
   @@map("notifications")
+}
+
+model RentInstalment {
+  id                String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  escrowId          String               @map("escrow_id") @db.Uuid
+  userId            String               @map("user_id") @db.Uuid
+  instalmentNumber  Int                  @map("instalment_number")
+  amountKobo        BigInt               @map("amount_kobo")
+  dueDate           DateTime             @map("due_date")
+  paidAt            DateTime?            @map("paid_at")
+  status            RentInstalmentStatus @default(scheduled)
+  retryCount        Int                  @default(0) @map("retry_count")
+  paystackReference String?              @map("paystack_reference")
+  createdAt         DateTime             @default(now()) @map("created_at")
+  updatedAt         DateTime             @updatedAt @map("updated_at")
+
+  user   User              @relation(fields: [userId], references: [id])
+  escrow EscrowTransaction @relation(fields: [escrowId], references: [id])
+
+  @@unique([escrowId, instalmentNumber])
+  @@index([userId, status])
+  @@index([dueDate])
+  @@map("rent_instalments")
+}
+
+model RentScoreEvent {
+  id        String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String            @map("user_id") @db.Uuid
+  eventType RentScoreEventType @map("event_type")
+  delta     Int
+  scoreAfter Int              @map("score_after")
+  escrowId  String?           @map("escrow_id") @db.Uuid
+  metadata  Json?
+  createdAt DateTime          @default(now()) @map("created_at")
+
+  user   User              @relation(fields: [userId], references: [id])
+  escrow EscrowTransaction? @relation(fields: [escrowId], references: [id])
+
+  @@index([userId])
+  @@index([userId, createdAt])
+  @@map("rent_score_events")
 }
