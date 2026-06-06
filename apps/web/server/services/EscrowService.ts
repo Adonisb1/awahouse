@@ -145,19 +145,28 @@ export class EscrowService {
 
   async adminRelease(escrowId: string, adminId: string) {
     const escrow = await this._getEscrow(escrowId);
+
+    if (escrow.status === 'key_handover_pending') {
+      const result = await this._transition(escrowId, 'completed', adminId, 'Admin completed handover');
+      await prisma.escrowTransaction.update({
+        where: { id: escrowId },
+        data: { completedAt: new Date() },
+      });
+      return result;
+    }
+
     if (escrow.status !== 'disputed') {
       throw new TRPCError({
         code: 'BAD_REQUEST',
-        message: 'Can only release disputed escrows in landlord\'s favour',
+        message: 'Can only release from disputed or key_handover_pending status',
       });
     }
-    const result = await this._transition(escrowId, 'completed', adminId, 'Admin resolved in landlord\'s favour');
 
+    const result = await this._transition(escrowId, 'completed', adminId, 'Admin resolved in landlord\'s favour');
     await prisma.escrowTransaction.update({
       where: { id: escrowId },
       data: { completedAt: new Date() },
     });
-
     return result;
   }
 
