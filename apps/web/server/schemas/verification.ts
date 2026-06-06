@@ -1,6 +1,12 @@
 import { z } from 'zod';
 import { PROFESSIONAL_BODIES } from '@awahouse/types';
 
+const ALL_VERIFICATION_TYPES = [
+  'nin',
+  'property_title',
+  ...PROFESSIONAL_BODIES,
+] as const;
+
 export const submitNinInput = z.object({
   nin: z
     .string()
@@ -10,11 +16,11 @@ export const submitNinInput = z.object({
 });
 
 export const checkStatusInput = z.object({
-  type: z.enum(['nin', ...PROFESSIONAL_BODIES] as [string, ...string[]]).optional(),
+  type: z.enum(ALL_VERIFICATION_TYPES).optional(),
 });
 
 export const uploadDocumentInput = z.object({
-  verificationType: z.enum(['nin', ...PROFESSIONAL_BODIES, 'property_title'] as [string, ...string[]]),
+  verificationType: z.enum(ALL_VERIFICATION_TYPES),
   fileName: z.string().min(1, 'File name is required'),
   fileType: z.string().min(1, 'File type is required'),
   fileBase64: z.string().min(1, 'File data is required'),
