@@ -37,8 +37,13 @@ export const escrowRouter = router({
   }),
 
   confirmHandover: tenantProcedure.input(confirmHandoverInput).mutation(async ({ ctx, input }) => {
-    await escrowService.confirmHandover(input.escrowId, ctx.userId!);
-    return { success: true };
+    const escrow = await escrowService.confirmHandover(input.escrowId, ctx.userId!);
+    return {
+      success: true,
+      showReviewPrompt: true,
+      propertyId: escrow.propertyId,
+      landlordId: escrow.landlordId,
+    };
   }),
 
   raiseDispute: tenantProcedure.input(raiseDisputeInput).mutation(async ({ ctx, input }) => {
