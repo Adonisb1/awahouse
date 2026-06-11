@@ -1,11 +1,10 @@
 import { TRPCError } from '@trpc/server';
 import bcrypt from 'bcryptjs';
 import { prisma } from '@awahouse/db';
-import { verifyNinWithFaceMatch } from '@/lib/youverify/client';
+import { verifyNin } from '@/lib/dojah/client';
 import type { VerificationType } from '@awahouse/types';
 
 const BCRYPT_COST = 12;
-const NIN_CONFIDENCE_THRESHOLD = 85;
 
 const PROFESSIONAL_BODIES: VerificationType[] = [
   'lasrera',
@@ -20,21 +19,27 @@ export class VerificationService {
   async submitNin(userId: string, nin: string, faceImageBase64?: string) {
     const ninHash = await bcrypt.hash(nin, BCRYPT_COST);
 
-    const existing = await prisma.verification.findUnique({
+    const existingVerification = await prisma.verification.findUnique({
       where: { userId_type: { userId, type: 'nin' } },
     });
-    if (existing && existing.status === 'approved') {
+    if (existingVerification && existingVerification.status === 'approved') {
       throw new TRPCError({
         code: 'BAD_REQUEST',
         message: 'NIN is already verified',
       });
     }
 
-    const result = await verifyNinWithFaceMatch(nin, faceImageBase64);
+    const ninUser = await prisma.user.findUnique({ where: { ninHash } });
+    if (ninUser && ninUser.id !== userId) {
+      throw new TRPCError({
+        code: 'CONFLICT',
+        message: 'This NIN is already linked to another account. One NIN can only be associated with one account.',
+      });
+    }
 
-    const status = result.success && result.confidence >= NIN_CONFIDENCE_THRESHOLD
-      ? 'approved'
-      : 'pending';
+    const result = await verifyNin(nin);
+
+    const status = result.success ? 'approved' : 'pending';
 
     await prisma.user.update({
       where: { id: userId },
@@ -45,13 +50,13 @@ export class VerificationService {
       where: { userId_type: { userId, type: 'nin' } },
       update: {
         status,
-        metadata: { youverifyConfidence: result.confidence, youverifyMessage: result.message },
+        metadata: { dojahName: result.entity ? `${result.entity.firstName} ${result.entity.lastName}`.trim() : null, dojahMessage: result.message },
       },
       create: {
         userId,
         type: 'nin',
         status,
-        metadata: { youverifyConfidence: result.confidence, youverifyMessage: result.message },
+        metadata: { dojahName: result.entity ? `${result.entity.firstName} ${result.entity.lastName}`.trim() : null, dojahMessage: result.message },
       },
     });
 
@@ -128,6 +133,34 @@ export class VerificationService {
     );
 
     return hasNin && hasProfBody;
+  }
+
+  async canUpgradeToLandlord(userId: string): Promise<{
+    canUpgrade: boolean;
+    missingRequirements: string[];
+  }> {
+    const verifications = await prisma.verification.findMany({
+      where: { userId, status: 'approved' },
+    });
+
+    const missingRequirements: string[] = [];
+
+    const hasNin = verifications.some((v) => v.type === 'nin');
+    if (!hasNin) {
+      missingRequirements.push('NIN verification');
+    }
+
+    const hasProfBody = verifications.some((v) =>
+      (PROFESSIONAL_BODIES as string[]).includes(v.type),
+    );
+    if (!hasProfBody) {
+      missingRequirements.push('Professional body verification (LASRERA, NIESV, ESVARBON, AEAN, ERCAAN, or REDAN)');
+    }
+
+    return {
+      canUpgrade: missingRequirements.length === 0,
+      missingRequirements,
+    };
   }
 }
 

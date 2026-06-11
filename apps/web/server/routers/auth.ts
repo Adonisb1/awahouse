@@ -1,35 +1,40 @@
 import { TRPCError } from '@trpc/server';
 import { router, publicProcedure, authedProcedure } from '../trpc';
-import { sendOtpInput, verifyOtpInput, signInWithGoogleInput } from '../schemas/auth';
+import { sendOtpInput, verifyOtpInput, signInWithGoogleInput, switchRoleInput } from '../schemas/auth';
 import { createServerSupabaseClient } from '@/lib/auth/supabase';
 import { createOtp, verifyOtp, canRequestOtp } from '@/lib/auth/otp';
+import { verificationService } from '../services/VerificationService';
 import { prisma } from '@awahouse/db';
 
 export const authRouter = router({
   sendOtp: publicProcedure
     .input(sendOtpInput)
     .mutation(async ({ input }) => {
-      if (!canRequestOtp(input.phone)) {
+      if (!canRequestOtp(input.email)) {
         throw new TRPCError({
           code: 'TOO_MANY_REQUESTS',
           message: 'Too many OTP requests. Please wait 10 minutes.',
         });
       }
 
-      const code = createOtp(input.phone);
+      const code = createOtp(input.email);
 
-      const supabase = createServerSupabaseClient();
-      if (supabase) {
-        const { error } = await supabase.auth.signInWithOtp({
-          phone: input.phone,
-          options: { data: { role: input.role } },
-        });
-        if (error) {
-          console.error('Supabase OTP error:', error.message);
+      console.log('═══════════════════════════════════════');
+      console.log(`  🔑 OTP for ${input.email}: ${code}`);
+      console.log('═══════════════════════════════════════');
+
+      if (process.env.NODE_ENV !== 'development') {
+        const supabase = createServerSupabaseClient();
+        if (supabase) {
+          const { error } = await supabase.auth.signInWithOtp({
+            email: input.email,
+            options: { data: { role: input.role } },
+          });
+          if (error) {
+            console.error('Supabase OTP error:', error.message);
+          }
         }
       }
-
-      console.log(`[STUB] OTP for ${input.phone}: ${code}`);
 
       return { success: true };
     }),
@@ -38,59 +43,58 @@ export const authRouter = router({
     .input(verifyOtpInput)
     .mutation(async ({ input }) => {
       const supabase = createServerSupabaseClient();
-      let userId: string | null = null;
+      let supabaseUserId: string | null = null;
 
       if (supabase) {
         const { data, error } = await supabase.auth.verifyOtp({
-          phone: input.phone,
+          email: input.email,
           token: input.code,
-          type: 'sms',
+          type: 'email',
         });
-        if (error || !data.user) {
-          throw new TRPCError({
-            code: 'UNAUTHORIZED',
-            message: error?.message ?? 'Invalid or expired OTP',
-          });
+        if (!error && data.user) {
+          supabaseUserId = data.user.id;
+        } else {
+          console.warn('Supabase OTP verification failed, falling back to local:', error?.message);
         }
-        userId = data.user.id;
-      } else {
-        if (!verifyOtp(input.phone, input.code)) {
-          throw new TRPCError({
-            code: 'UNAUTHORIZED',
-            message: 'Invalid or expired OTP',
-          });
-        }
+      }
+
+      if (!supabaseUserId && !verifyOtp(input.email, input.code)) {
+        throw new TRPCError({
+          code: 'UNAUTHORIZED',
+          message: 'Invalid or expired OTP',
+        });
       }
 
       const existingUser = await prisma.user.findUnique({
-        where: { phone: input.phone },
+        where: { email: input.email },
       });
 
       if (!existingUser) {
+        const newUserRole = input.role ?? 'tenant';
         const newUser = await prisma.user.create({
           data: {
-            phone: input.phone,
             email: input.email,
             firstName: input.firstName,
             lastName: input.lastName,
-            role: 'tenant',
+            roles: [newUserRole],
+            activeRole: newUserRole,
           },
         });
-        userId = newUser.id;
-      } else {
-        userId = existingUser.id;
-      }
 
-      if (!userId) {
-        throw new TRPCError({
-          code: 'INTERNAL_SERVER_ERROR',
-          message: 'Failed to create or find user',
-        });
+        return {
+          success: true,
+          userId: newUser.id,
+          roles: [newUserRole],
+          activeRole: newUserRole,
+          sessionToken: supabase ? null : 'stub-session-token',
+        };
       }
 
       return {
         success: true,
-        userId,
+        userId: existingUser.id,
+        roles: existingUser.roles,
+        activeRole: existingUser.activeRole,
         sessionToken: supabase ? null : 'stub-session-token',
       };
     }),
@@ -118,23 +122,85 @@ export const authRouter = router({
             message: 'Google account must have a verified email',
           });
         }
-        let dbUser = await prisma.user.findUnique({ where: { phone: email } });
+        let dbUser = await prisma.user.findUnique({ where: { email } });
         if (!dbUser) {
+          const googleRole = input.role ?? 'tenant';
           dbUser = await prisma.user.create({
             data: {
-              phone: email,
               email,
               firstName: data.user.user_metadata?.given_name,
               lastName: data.user.user_metadata?.family_name,
               avatarUrl: data.user.user_metadata?.avatar_url,
-              role: input.role ?? 'tenant',
+              roles: [googleRole],
+              activeRole: googleRole,
             },
           });
         }
-        return { success: true, userId: dbUser.id };
+        return { success: true, userId: dbUser.id, roles: dbUser.roles, activeRole: dbUser.activeRole };
       }
 
-      return { success: true, userId: 'stub-google-user-id' };
+      return { success: true, userId: 'stub-google-user-id', roles: ['tenant'], activeRole: 'tenant' };
+    }),
+
+  switchRole: authedProcedure
+    .input(switchRoleInput)
+    .mutation(async ({ input, ctx }) => {
+      if (!ctx.roles.includes(input.role)) {
+        throw new TRPCError({
+          code: 'FORBIDDEN',
+          message: `You do not have the "${input.role}" role`,
+        });
+      }
+
+      await prisma.user.update({
+        where: { id: ctx.userId! },
+        data: { activeRole: input.role },
+      });
+
+      return { success: true, activeRole: input.role, roles: ctx.roles };
+    }),
+
+  upgradeToLandlord: authedProcedure
+    .mutation(async ({ ctx }) => {
+      if (ctx.roles.includes('landlord')) {
+        throw new TRPCError({
+          code: 'BAD_REQUEST',
+          message: 'You are already a landlord',
+        });
+      }
+
+      if (!ctx.roles.includes('tenant')) {
+        throw new TRPCError({
+          code: 'FORBIDDEN',
+          message: 'Only tenants can upgrade to landlord',
+        });
+      }
+
+      const { canUpgrade, missingRequirements } = await verificationService.canUpgradeToLandlord(ctx.userId!);
+
+      if (!canUpgrade) {
+        return {
+          success: false,
+          canUpgrade: false,
+          missingRequirements,
+          message: 'Complete the following requirements to become a landlord',
+        };
+      }
+
+      const updatedUser = await prisma.user.update({
+        where: { id: ctx.userId! },
+        data: {
+          roles: { push: 'landlord' },
+          activeRole: 'landlord',
+        },
+      });
+
+      return {
+        success: true,
+        canUpgrade: true,
+        roles: updatedUser.roles,
+        activeRole: updatedUser.activeRole,
+      };
     }),
 
   signOut: authedProcedure
@@ -148,6 +214,6 @@ export const authRouter = router({
 
   refreshSession: authedProcedure
     .query(async ({ ctx }) => {
-      return { userId: ctx.userId, role: ctx.role, authenticated: true };
+      return { userId: ctx.userId, roles: ctx.roles, activeRole: ctx.activeRole, authenticated: true };
     }),
 });

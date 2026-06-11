@@ -190,7 +190,7 @@ export class EscrowService {
     }
     if (escrow.tenantId !== userId && escrow.landlordId !== userId && escrow.agentId !== userId) {
       const user = await prisma.user.findUnique({ where: { id: userId } });
-      if (user?.role !== 'admin') {
+      if (!user?.roles.includes('admin')) {
         throw new TRPCError({ code: 'FORBIDDEN', message: 'Access denied' });
       }
     }

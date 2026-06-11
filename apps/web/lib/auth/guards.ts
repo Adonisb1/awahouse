@@ -3,7 +3,8 @@ import type { Role } from '@awahouse/types';
 
 export type GuardContext = {
   userId: string | null;
-  role: Role | null;
+  roles: Role[];
+  activeRole: Role | null;
 };
 
 export function requireAuth(ctx: GuardContext): asserts ctx is GuardContext & { userId: string } {
@@ -15,9 +16,9 @@ export function requireAuth(ctx: GuardContext): asserts ctx is GuardContext & { 
   }
 }
 
-export function requireRole(ctx: GuardContext, role: Role): asserts ctx is GuardContext & { role: Role } {
+export function requireActiveRole(ctx: GuardContext, role: Role): asserts ctx is GuardContext & { activeRole: Role } {
   requireAuth(ctx);
-  if (ctx.role !== role) {
+  if (ctx.activeRole !== role) {
     throw new TRPCError({
       code: 'FORBIDDEN',
       message: `You need the "${role}" role to perform this action`,
@@ -26,12 +27,12 @@ export function requireRole(ctx: GuardContext, role: Role): asserts ctx is Guard
 }
 
 export function requireAdmin(ctx: GuardContext): void {
-  requireRole(ctx, 'admin');
+  requireActiveRole(ctx, 'admin');
 }
 
-export function requireAnyRole(ctx: GuardContext, roles: Role[]): asserts ctx is GuardContext & { role: Role } {
+export function requireAnyRole(ctx: GuardContext, roles: Role[]): asserts ctx is GuardContext & { activeRole: Role } {
   requireAuth(ctx);
-  if (!ctx.role || !roles.includes(ctx.role)) {
+  if (!ctx.activeRole || !roles.includes(ctx.activeRole)) {
     throw new TRPCError({
       code: 'FORBIDDEN',
       message: `You need one of these roles: ${roles.join(', ')}`,

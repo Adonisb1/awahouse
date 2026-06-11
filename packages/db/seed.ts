@@ -5,24 +5,23 @@ const prisma = new PrismaClient();
 
 async function main() {
   // Create admin user
-  const adminPhone = '+2348000000000';
+  const adminEmail = 'admin@awahouse.ng';
 
   const existingAdmin = await prisma.user.findUnique({
-    where: { phone: adminPhone },
+    where: { email: adminEmail },
   });
 
   if (!existingAdmin) {
     await prisma.user.create({
       data: {
-        phone: adminPhone,
-        email: 'admin@awahouse.ng',
+        email: adminEmail,
         role: 'admin',
         firstName: 'Awa',
         lastName: 'Admin',
         rentScore: 500,
       },
     });
-    console.log('Admin user created: +2348000000000');
+    console.log('Admin user created: admin@awahouse.ng');
   } else {
     console.log('Admin user already exists');
   }
