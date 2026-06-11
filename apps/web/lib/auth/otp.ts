@@ -17,9 +17,9 @@ function generateCode(): string {
   return digits;
 }
 
-export function createOtp(phone: string): string {
+export function createOtp(identifier: string): string {
   const code = generateCode();
-  inMemoryStore.set(phone, {
+  inMemoryStore.set(identifier, {
     code,
     attempts: 0,
     expiresAt: Date.now() + OTP_TTL_MS,
@@ -27,28 +27,28 @@ export function createOtp(phone: string): string {
   return code;
 }
 
-export function verifyOtp(phone: string, code: string): boolean {
-  const record = inMemoryStore.get(phone);
+export function verifyOtp(identifier: string, code: string): boolean {
+  const record = inMemoryStore.get(identifier);
   if (!record) return false;
   if (Date.now() > record.expiresAt) {
-    inMemoryStore.delete(phone);
+    inMemoryStore.delete(identifier);
     return false;
   }
   record.attempts += 1;
   if (record.attempts > MAX_ATTEMPTS) {
-    inMemoryStore.delete(phone);
+    inMemoryStore.delete(identifier);
     return false;
   }
   if (record.code !== code) return false;
-  inMemoryStore.delete(phone);
+  inMemoryStore.delete(identifier);
   return true;
 }
 
-export function canRequestOtp(phone: string): boolean {
-  const record = inMemoryStore.get(phone);
+export function canRequestOtp(identifier: string): boolean {
+  const record = inMemoryStore.get(identifier);
   if (!record) return true;
   if (Date.now() > record.expiresAt) {
-    inMemoryStore.delete(phone);
+    inMemoryStore.delete(identifier);
     return true;
   }
   return record.attempts < MAX_ATTEMPTS;
