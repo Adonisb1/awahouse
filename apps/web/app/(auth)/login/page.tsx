@@ -7,31 +7,33 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Card, CardContent } from '@/components/ui/Card';
 import { useAuthStore } from '@/hooks/useAuthStore';
+import { trpc } from '@/lib/trpc/react';
 
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const role = searchParams.get('role') ?? 'tenant';
+  const role = (searchParams.get('role') ?? 'tenant') as 'tenant' | 'landlord' | 'agent';
   const setAuth = useAuthStore((s) => s.setAuth);
 
-  const [step, setStep] = useState<'phone' | 'otp'>('phone');
-  const [phone, setPhone] = useState('');
+  const [step, setStep] = useState<'email' | 'otp'>('email');
+  const [email, setEmail] = useState('');
   const [otp, setOtp] = useState('');
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  const sendOtpMutation = trpc.auth.sendOtp.useMutation();
+  const verifyOtpMutation = trpc.auth.verifyOtp.useMutation();
+
   async function handleSendOtp() {
-    if (!phone.startsWith('+234') || phone.length < 13) {
-      setError('Enter a valid Nigerian number (+234XXXXXXXXXX)');
+    if (!email.includes('@')) {
+      setError('Enter a valid email address');
       return;
     }
-    setLoading(true);
     setError('');
     try {
-      await new Promise((r) => setTimeout(r, 800));
+      await sendOtpMutation.mutateAsync({ email, role });
       setStep('otp');
-    } finally {
-      setLoading(false);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Failed to send code');
     }
   }
 
@@ -40,21 +42,22 @@ function LoginForm() {
       setError('OTP must be 6 digits');
       return;
     }
-    setLoading(true);
     setError('');
     try {
-      const stubUserId = `user-${Math.random().toString(36).slice(2, 9)}`;
-      setAuth({ userId: stubUserId, role: role as 'tenant' | 'landlord' | 'agent' });
+      const result = await verifyOtpMutation.mutateAsync({ email, code: otp, role });
+      setAuth({ userId: result.userId, roles: result.roles, activeRole: result.activeRole });
       router.replace('/onboarding');
-    } finally {
-      setLoading(false);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Invalid code');
     }
   }
+
+  const loading = sendOtpMutation.isPending || verifyOtpMutation.isPending;
 
   return (
     <main className="flex min-h-screen flex-col bg-surface p-6">
       <button
-        onClick={() => (step === 'phone' ? router.back() : setStep('phone'))}
+        onClick={() => (step === 'email' ? router.back() : setStep('email'))}
         className="mb-8 flex items-center gap-2 text-sm text-charcoal/60"
       >
         <ArrowLeft className="h-4 w-4" />
@@ -63,23 +66,24 @@ function LoginForm() {
 
       <div className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center">
         <h1 className="font-display text-3xl italic font-black text-charcoal">
-          {step === 'phone' && 'Get started'}
+          {step === 'email' && 'Get started'}
           {step === 'otp' && 'Enter code'}
         </h1>
         <p className="mt-1 font-body text-charcoal/60">
-          {step === 'phone' && 'Enter your phone number to receive a code'}
-          {step === 'otp' && `We sent a 6-digit code to ${phone}`}
+          {step === 'email' && 'Enter your email to receive a code'}
+          {step === 'otp' && `We sent a 6-digit code to ${email}`}
         </p>
 
         <Card className="mt-8">
           <CardContent className="pt-6">
-            {step === 'phone' && (
+            {step === 'email' && (
               <div className="flex flex-col gap-4">
                 <Input
-                  label="Phone number"
-                  placeholder="+2348012345678"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
+                  label="Email address"
+                  type="email"
+                  placeholder="you@example.com"
+                  value={email}
+                   onChange={(e) => setEmail(e.target.value)}
                   error={error}
                 />
                 <Button onClick={handleSendOtp} disabled={loading} className="w-full">
@@ -96,7 +100,7 @@ function LoginForm() {
                   placeholder="000000"
                   maxLength={6}
                   value={otp}
-                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
+                   onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
                   error={error}
                 />
                 <Button onClick={handleVerifyOtp} disabled={loading} className="w-full">
