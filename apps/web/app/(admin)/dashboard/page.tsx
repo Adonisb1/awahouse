@@ -32,9 +32,9 @@ export default function AdminDashboardPage() {
       </div>
 
       <div className="flex gap-2 mb-6">
-        <Button variant={activeTab === 'overview' ? 'primary' : 'outline'} size="sm">Overview</Button>
-        <Button variant={activeTab === 'verifications' ? 'primary' : 'outline'} size="sm">Verifications</Button>
-        <Button variant={activeTab === 'disputes' ? 'primary' : 'outline'} size="sm">Disputes</Button>
+        <Button variant={activeTab === 'overview' ? 'primary' : 'secondary'} size="sm">Overview</Button>
+        <Button variant={activeTab === 'verifications' ? 'primary' : 'secondary'} size="sm">Verifications</Button>
+        <Button variant={activeTab === 'disputes' ? 'primary' : 'secondary'} size="sm">Disputes</Button>
       </div>
 
       <Card className="mb-6">
@@ -48,7 +48,7 @@ export default function AdminDashboardPage() {
                   <p className="font-body text-sm text-charcoal/40">{v.propertyTitle ?? ''} &middot; {v.date}</p>
                 </div>
                 <div className="flex gap-2">
-                  <Button size="sm" variant="outline">Review</Button>
+                  <Button size="sm" variant="secondary">Review</Button>
                   <Badge variant="pending">Pending</Badge>
                 </div>
               </div>
@@ -69,7 +69,7 @@ export default function AdminDashboardPage() {
                   <p className="font-body text-sm text-charcoal/40">{d.reason}</p>
                 </div>
                 <div className="flex gap-2">
-                  <Button size="sm" variant="outline">Resolve</Button>
+                  <Button size="sm" variant="secondary">Resolve</Button>
                   <Badge variant="pending">Disputed</Badge>
                 </div>
               </div>
