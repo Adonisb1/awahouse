@@ -10,3 +10,4 @@ turbo.log
 coverage/
 test-results/
 playwright-report/
+.turbo/
