@@ -81,12 +81,13 @@ enum RentScoreEventType {
 
 model User {
   id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  phone      String   @unique
-  email      String?
-  role       UserRole @default(tenant)
+  phone      String?
+  email      String   @unique
+  roles      UserRole[]
+  activeRole UserRole @default(tenant) @map("active_role")
   firstName  String?  @map("first_name")
   lastName   String?  @map("last_name")
-  ninHash    String?  @map("nin_hash")
+  ninHash    String?  @unique @map("nin_hash")
   avatarUrl  String?  @map("avatar_url")
   rentScore  Int      @default(500) @map("rent_score")
   isDeleted  Boolean  @default(false) @map("is_deleted")
