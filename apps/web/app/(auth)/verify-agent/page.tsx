@@ -41,7 +41,7 @@ export default function VerifyAgentPage() {
         <p className="mt-2 font-body text-charcoal/60 text-center max-w-sm">
           Your credentials are under review. We&apos;ll notify you once verified.
         </p>
-        <Button onClick={() => router.push('/')} className="mt-8">
+        <Button onClick={() => router.push('/agent/listings')} className="mt-8">
           Done
         </Button>
       </main>

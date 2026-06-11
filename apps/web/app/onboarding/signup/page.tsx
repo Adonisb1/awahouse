@@ -1,0 +1,324 @@
+'use client';
+
+import * as React from 'react';
+import { useRouter } from 'next/navigation';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Eye, EyeOff, ShieldCheck } from 'lucide-react';
+import { cn } from '@/lib/utils/cn';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
+import { trpc } from '@/lib/trpc/react';
+import { useAuthStore } from '@/hooks/useAuthStore';
+
+export default function AuthPage() {
+  const router = useRouter();
+  const pendingRole = useAuthStore((s) => s.pendingRole);
+  const setAuth = useAuthStore((s) => s.setAuth);
+
+  const [activeTab, setActiveTab] = React.useState<'signup' | 'login'>('signup');
+  const [showPassword, setShowPassword] = React.useState(false);
+  const [stage, setStage] = React.useState<'details' | 'otp'>('details');
+  const [otpCode, setOtpCode] = React.useState('');
+  const [form, setForm] = React.useState({
+    fullName: '',
+    phone: '',
+    email: '',
+    password: '',
+  });
+
+  const sendOtpMutation = trpc.auth.sendOtp.useMutation();
+  const verifyOtpMutation = trpc.auth.verifyOtp.useMutation();
+  const googleSignInMutation = trpc.auth.signInWithGoogle.useMutation();
+
+  const handleSendOtp = async () => {
+    try {
+      await sendOtpMutation.mutateAsync({
+        email: form.email,
+        role: (pendingRole ?? 'tenant') as 'tenant' | 'landlord' | 'agent',
+      });
+      setStage('otp');
+    } catch (error) {
+      console.error('Failed to send OTP:', error);
+    }
+  };
+
+  const handleVerifyOtp = async () => {
+    try {
+      const names = form.fullName.split(' ');
+      const result = await verifyOtpMutation.mutateAsync({
+        email: form.email,
+        code: otpCode,
+        firstName: names[0] || '',
+        lastName: names.slice(1).join(' ') || '',
+        role: (pendingRole ?? 'tenant') as 'tenant' | 'landlord' | 'agent',
+      });
+
+      if (result.success && result.userId) {
+        setAuth({
+          userId: result.userId,
+          roles: result.roles as any,
+          activeRole: result.activeRole as any,
+          sessionToken: result.sessionToken,
+        });
+        router.push('/onboarding/verify-nin');
+      }
+    } catch (error) {
+      console.error('Failed to verify OTP:', error);
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    try {
+      const result = await googleSignInMutation.mutateAsync({
+        idToken: 'stub-google-token',
+        role: (pendingRole ?? 'tenant') as 'tenant' | 'landlord' | 'agent',
+      });
+
+      if (result.success) {
+        setAuth({
+          userId: result.userId,
+          roles: result.roles as any,
+          activeRole: result.activeRole as any,
+        });
+        router.push('/onboarding/verify-nin');
+      }
+    } catch (error) {
+      console.error('Google sign-in failed:', error);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-sand flex flex-col justify-center py-12 px-6">
+      <div className="w-full max-w-md mx-auto">
+        {/* Header */}
+        <div className="flex justify-between items-center mb-10">
+          <h1 className="font-playfair italic font-black text-2xl text-terra">Awahouse</h1>
+          <span className="font-mono text-[11px] text-muted uppercase tracking-widest">AWH-03 //</span>
+        </div>
+
+        {/* Content Card */}
+        <div className="bg-white p-8 rounded-card shadow-card">
+          <AnimatePresence mode="wait">
+            {stage === 'details' ? (
+              <motion.div
+                key="details"
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 10 }}
+              >
+                {/* Tabs */}
+                <div className="flex border-b border-outline-variant mb-10">
+                  <button
+                    onClick={() => setActiveTab('signup')}
+                    className={cn(
+                      'flex-1 pb-4 text-sm font-bold transition-all duration-200 relative',
+                      activeTab === 'signup' ? 'text-terra-dark' : 'text-muted'
+                    )}
+                  >
+                    Sign Up
+                    {activeTab === 'signup' && (
+                      <motion.div layoutId="authTab" className="absolute bottom-0 left-0 right-0 h-[2.5px] bg-terra-dark" />
+                    )}
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('login')}
+                    className={cn(
+                      'flex-1 pb-4 text-sm font-bold transition-all duration-200 relative',
+                      activeTab === 'login' ? 'text-terra-dark' : 'text-muted'
+                    )}
+                  >
+                    Log In
+                    {activeTab === 'login' && (
+                      <motion.div layoutId="authTab" className="absolute bottom-0 left-0 right-0 h-[2.5px] bg-terra-dark" />
+                    )}
+                  </button>
+                </div>
+
+                <h2 className="text-[22px] font-bold text-charcoal mb-2">
+                  {activeTab === 'signup' ? 'Create your account' : 'Welcome back'}
+                </h2>
+                <p className="text-sm text-muted mb-8 leading-relaxed">
+                  {activeTab === 'signup' 
+                    ? "Join Lagos's verified property marketplace today." 
+                    : "Continue your journey to a verified home."}
+                </p>
+
+                <div className="space-y-6">
+                  {activeTab === 'signup' && (
+                    <Input
+                      label="Full Name"
+                      placeholder="Enter your legal name"
+                      value={form.fullName}
+                      onChange={(e) => setForm({ ...form, fullName: e.target.value })}
+                    />
+                  )}
+
+                  {activeTab === 'signup' && (
+                    <div className="space-y-1.5">
+                      <label className="block font-mono text-[11px] uppercase tracking-widest text-muted mb-1.5">
+                        Phone Number
+                      </label>
+                      <div className="flex gap-2">
+                        <div className="h-[52px] px-4 rounded-input border border-outline-variant bg-white flex items-center justify-center font-sans font-bold text-charcoal text-sm">
+                          +234
+                        </div>
+                        <Input
+                          placeholder="803 000 0000"
+                          value={form.phone}
+                          onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                          className="flex-1"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  <Input
+                    label="Email Address"
+                    type="email"
+                    placeholder="name@example.com"
+                    value={form.email}
+                    onChange={(e) => setForm({ ...form, email: e.target.value })}
+                  />
+
+                  {activeTab === 'signup' && (
+                    <div className="bg-success-bg border border-success/25 rounded-xl p-4 flex gap-3">
+                      <ShieldCheck className="text-success shrink-0" size={20} />
+                      <div className="text-sm text-success leading-relaxed">
+                        <span className="font-bold">✓ NIN Verification Req.</span>
+                        <p className="opacity-80">Identity verified after account creation for security.</p>
+                      </div>
+                    </div>
+                  )}
+
+                  <Button
+                    variant="primary"
+                    size="lg"
+                    fullWidth
+                    loading={sendOtpMutation.isPending}
+                    onClick={handleSendOtp}
+                    className="mt-4"
+                  >
+                    {activeTab === 'signup' ? 'Create Account' : 'Log In'}
+                  </Button>
+
+                  <div className="flex items-center gap-4 my-8">
+                    <div className="flex-1 h-[1px] bg-outline-variant/30" />
+                    <span className="text-[10px] font-mono text-muted uppercase tracking-widest">— or —</span>
+                    <div className="flex-1 h-[1px] bg-outline-variant/30" />
+                  </div>
+
+                  <Button
+                    variant="ghost"
+                    size="lg"
+                    fullWidth
+                    loading={googleSignInMutation.isPending}
+                    onClick={handleGoogleSignIn}
+                    className="bg-white border border-outline-variant text-charcoal hover:bg-gray-50"
+                    icon={
+                      <svg className="w-5 h-5" viewBox="0 0 24 24">
+                        <path
+                          d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                          fill="#4285F4"
+                        />
+                        <path
+                          d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                          fill="#34A853"
+                        />
+                        <path
+                          d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"
+                          fill="#FBBC05"
+                        />
+                        <path
+                          d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                          fill="#EA4335"
+                        />
+                      </svg>
+                    }
+                  >
+                    Continue with Google
+                  </Button>
+                </div>
+              </motion.div>
+            ) : (
+              <motion.div
+                key="otp"
+                initial={{ opacity: 0, x: 10 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -10 }}
+                className="flex-1 flex flex-col"
+              >
+                <h2 className="text-[22px] font-bold text-charcoal mb-2">Verify your email</h2>
+                <p className="text-sm text-muted mb-8 leading-relaxed">
+                  We've sent a 6-digit code to <span className="font-bold text-charcoal">{form.email}</span>. 
+                  Check your inbox (and spam) to continue.
+                </p>
+
+                <div className="space-y-6">
+                  <Input
+                    label="Enter 6-digit code"
+                    placeholder="000000"
+                    maxLength={6}
+                    value={otpCode}
+                    onChange={(e) => setOtpCode(e.target.value)}
+                    className="text-center text-2xl tracking-[0.5em] font-mono h-[64px]"
+                  />
+                  <Button
+                    variant="primary"
+                    size="lg"
+                    fullWidth
+                    loading={verifyOtpMutation.isPending}
+                    disabled={otpCode.length !== 6}
+                    onClick={handleVerifyOtp}
+                  >
+                    Verify & Continue
+                  </Button>
+
+                  <ResendOtpButton onClick={handleSendOtp} />
+
+                  <button
+                    onClick={() => setStage('details')}
+                    className="w-full text-center text-sm font-bold text-muted hover:text-terra transition-colors"
+                  >
+                    ← Back to details
+                  </button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ResendOtpButton({ onClick }: { onClick: () => void }) {
+  const [timer, setTimer] = React.useState(60);
+  const [canResend, setCanResend] = React.useState(false);
+
+  React.useEffect(() => {
+    if (timer > 0) {
+      const interval = setInterval(() => setTimer((t) => t - 1), 1000);
+      return () => clearInterval(interval);
+    } else {
+      setCanResend(true);
+    }
+  }, [timer]);
+
+  const handleResend = () => {
+    onClick();
+    setTimer(60);
+    setCanResend(false);
+  };
+
+  return (
+    <div className="text-center text-sm">
+      {canResend ? (
+        <button onClick={handleResend} className="font-bold text-terra hover:underline">
+          Resend code
+        </button>
+      ) : (
+        <span className="text-muted">Resend code in {timer}s</span>
+      )}
+    </div>
+  );
+}
