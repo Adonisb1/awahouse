@@ -1,39 +1,56 @@
 'use client';
 
-import { forwardRef } from 'react';
+import * as React from 'react';
 import { cn } from '@/lib/utils/cn';
 
-type InputProps = React.InputHTMLAttributes<HTMLInputElement> & {
+interface InputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'prefix' | 'suffix'> {
   label?: string;
   error?: string;
-};
+  hint?: string;
+  prefix?: React.ReactNode;
+  suffix?: React.ReactNode;
+}
 
-const Input = forwardRef<HTMLInputElement, InputProps>(
-  ({ className, label, error, id, ...props }, ref) => {
+const Input = React.forwardRef<HTMLInputElement, InputProps>(
+  ({ className, label, error, hint, prefix, suffix, type, ...props }, ref) => {
     return (
-      <div className="flex flex-col gap-1.5">
+      <div className="w-full">
         {label && (
-          <label htmlFor={id} className="font-body text-sm font-medium text-charcoal">
+          <label className="block font-mono text-[11px] uppercase tracking-widest text-muted mb-1.5">
             {label}
           </label>
         )}
-        <input
-          id={id}
-          className={cn(
-            'h-11 w-full rounded-lg border border-charcoal/20 bg-white px-4 font-body text-charcoal placeholder:text-charcoal/40',
-            'focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20',
-            'disabled:opacity-50 disabled:cursor-not-allowed',
-            error && 'border-red-500 focus:border-red-500 focus:ring-red-500/20',
-            className,
+        <div className="relative flex items-center">
+          {prefix && (
+            <div className="absolute left-4 flex items-center pointer-events-none text-muted">
+              {prefix}
+            </div>
           )}
-          ref={ref}
-          {...props}
-        />
-        {error && <p className="text-sm text-red-500">{error}</p>}
+          <input
+            ref={ref}
+            type={type}
+            className={cn(
+              'h-[52px] w-full rounded-input border border-outline-variant bg-white px-4 font-sans transition-all duration-200 focus:border-terra-dark focus:ring-0 outline-none',
+              error && 'border-red-400',
+              prefix && 'pl-14',
+              suffix && 'pr-12',
+              className
+            )}
+            {...props}
+          />
+          {suffix && (
+            <div className="absolute right-4 flex items-center text-muted">
+              {suffix}
+            </div>
+          )}
+        </div>
+        {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
+        {hint && !error && <p className="mt-1 text-xs text-muted">{hint}</p>}
       </div>
     );
-  },
+  }
 );
+
 Input.displayName = 'Input';
 
 export { Input };
