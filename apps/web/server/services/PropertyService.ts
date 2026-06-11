@@ -12,10 +12,12 @@ export class PropertyService {
       throw new TRPCError({ code: 'NOT_FOUND', message: 'User not found' });
     }
 
-    const canCreate = user.role === 'landlord'
+    const isLandlord = user.roles.includes('landlord');
+    const isAgent = user.roles.includes('agent');
+    const canCreate = isLandlord
       ? true
       : await verificationService.canAgentCreateListing(userId);
-    if (!canCreate && user.role === 'agent') {
+    if (!canCreate && isAgent) {
       throw new TRPCError({
         code: 'FORBIDDEN',
         message: 'Agents must verify NIN and a professional body before creating listings',
@@ -80,7 +82,7 @@ export class PropertyService {
       where: { id: propertyId },
       include: {
         images: { orderBy: { sortOrder: 'asc' } },
-        owner: { select: { id: true, firstName: true, lastName: true, avatarUrl: true, role: true } },
+        owner: { select: { id: true, firstName: true, lastName: true, avatarUrl: true, roles: true, activeRole: true } },
       },
     });
 
@@ -161,7 +163,7 @@ export class PropertyService {
         where: geoFilteredIds ? { id: { in: geoFilteredIds }, ...where } : (where as any),
         include: {
           images: { take: 1, orderBy: { sortOrder: 'asc' } },
-          owner: { select: { id: true, firstName: true, lastName: true, role: true } },
+          owner: { select: { id: true, firstName: true, lastName: true, roles: true, activeRole: true } },
         },
         orderBy: { createdAt: 'desc' },
         skip,
