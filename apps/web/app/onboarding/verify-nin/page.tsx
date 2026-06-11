@@ -18,7 +18,7 @@ export default function NINVerificationPage() {
 
   const submitNinMutation = trpc.verification.submitNin.useMutation();
   const { data: statusData, refetch: refetchStatus } = trpc.verification.checkStatus.useQuery(undefined, {
-    enabled: status === 'loading',
+    enabled: status === 'loading' || status === 'idle',
     refetchInterval: (query) => {
       const verif = query.state.data?.verifications.find(v => v.type === 'nin');
       return verif?.status === 'pending' ? 2000 : false;
@@ -33,7 +33,7 @@ export default function NINVerificationPage() {
         if (activeRole === 'agent') {
           router.push('/onboarding/verify-agent');
         } else if (activeRole === 'landlord') {
-          router.push('/dashboard');
+          router.push('/landlord');
         } else {
           router.push('/explore');
         }
@@ -52,8 +52,13 @@ export default function NINVerificationPage() {
         });
         refetchStatus();
       } catch (error) {
-        console.error('NIN submission failed:', error);
-        setStatus('idle');
+        const msg = error instanceof Error ? error.message : '';
+        if (msg.includes('already verified')) {
+          setStatus('success');
+        } else {
+          console.error('NIN submission failed:', error);
+          setStatus('idle');
+        }
       }
     }
   };
