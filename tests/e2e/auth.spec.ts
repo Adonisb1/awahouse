@@ -14,10 +14,10 @@ test.describe('Auth flow', () => {
     await expect(page.locator("text=I'm an agent")).toBeVisible();
   });
 
-  test('login page accepts phone number', async ({ page }) => {
+  test('login page accepts email address', async ({ page }) => {
     await page.goto('/login?role=tenant');
     await expect(page.locator('text=Get started')).toBeVisible();
-    await page.fill('input[placeholder="+2348012345678"]', '+2348012345678');
+    await page.fill('input[type="email"]', 'user@example.com');
     await page.click('text=Send code');
     await expect(page.locator('text=Enter code')).toBeVisible();
   });
