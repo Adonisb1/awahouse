@@ -179,14 +179,14 @@ export const requireAnyRole = (ctx: Context, roles: Role[]) => { ... }
 **Responsibilities:**
 - Implement `server/services/VerificationService.ts` with all NIN, professional body, and property title logic.
 - Implement `server/routers/verification.ts`: `submitNin`, `checkStatus`, `uploadDocument`, `adminReview`.
-- Integrate YouVerify NIN lookup API (POST `/v2/api/biometrics/merchant/data/verification/nin-face-match`).
+- Integrate Dojah NIN lookup API (POST `/api/v1/kyc/nin`).
 - Enforce agent listing gate: NIN verified AND at least one approved professional body.
 - Handle the `verifications` table for all entity types (`user`, `property`).
 
 **Constraints:**
 - Raw NIN must never reach the database. Hash it with bcrypt (cost factor 12) before any persistence.
-- YouVerify confidence score threshold for NIN approval: **≥ 85%**.
-- If YouVerify is down: queue the verification as `pending` and allow partial registration. Notify the user via SMS that verification is in progress.
+- Dojah NIN approval: any successful identity match auto-approves. No confidence score threshold.
+- If Dojah is down: queue the verification as `pending` and allow partial registration. Notify the user via SMS that verification is in progress.
 - Document uploads go to R2 under the path `verifications/{userId}/{verificationType}/{timestamp}.{ext}`.
 
 **Professional body enum values (all accepted for agent listing gate):**
@@ -510,9 +510,10 @@ PAYSTACK_SECRET_KEY=
 PAYSTACK_PUBLIC_KEY=
 NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY=
 
-# YouVerify
-YOUVERIFY_API_KEY=
-YOUVERIFY_BASE_URL=
+# Dojah (NIN verification)
+DOJAH_APP_ID=
+DOJAH_API_KEY=
+DOJAH_BASE_URL=https://api.dojah.io
 
 # Termii
 TERMII_API_KEY=
@@ -583,8 +584,8 @@ export function validatePaystackSignature(body: string, signature: string): bool
 }
 ```
 
-**Webhook signature validation (YouVerify):**
-- Verify `x-youverify-signature` header using the secret provided in the YouVerify dashboard.
+**Webhook signature validation (Dojah):**
+- Verify HMAC-SHA256 signature using the secret provided in the Dojah dashboard.
 
 **Rate limiting (apply to all public tRPC procedures):**
 ```typescript
@@ -625,7 +626,7 @@ const rateLimiter = new Ratelimit({
 
 **Unit test coverage requirements:**
 - `EscrowService`: all state transitions (valid + invalid)
-- `VerificationService`: NIN hash, YouVerify response handling, listing gate
+- `VerificationService`: NIN hash, Dojah response handling, listing gate
 - `RentScoreService`: score delta calculation, boundary clamping (300/850)
 - `NotificationService`: correct channel routing per event type
 

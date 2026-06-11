@@ -71,7 +71,7 @@ Business Logic (TypeScript service classes)
 Data Layer (Prisma ORM → PostgreSQL 16 via Supabase)
   ↓ async side effects
 Queue Layer (BullMQ → Upstash Redis)
-External Services (YouVerify, Paystack, Termii, Resend, Cloudflare R2)
+External Services (Dojah, Paystack, Termii, Resend, Cloudflare R2)
 ```
 
 ### Request Lifecycle
@@ -107,7 +107,7 @@ External Services (YouVerify, Paystack, Termii, Resend, Cloudflare R2)
 | Object Storage | Cloudflare R2 | S3 API |
 | Email | Resend + React Email | latest |
 | SMS / OTP | Termii | v3 API |
-| Identity Verification | YouVerify / NIMC | latest |
+| Identity Verification | Dojah | latest |
 | Hosting (web) | Vercel | latest |
 | Hosting (workers) | Railway | latest |
 | Error Tracking | Sentry | 7.x |
@@ -134,7 +134,7 @@ awahouse/
 │       │   ├── (agent)/            # agent dashboard, listings CMS
 │       │   └── (admin)/            # internal ops dashboard
 │       │   └── api/
-│       │       └── webhooks/       # paystack, termii, youverify
+│       │       └── webhooks/       # paystack, termii, dojah
 │       ├── components/
 │       │   ├── ui/                 # design system primitives
 │       │   ├── property/           # PropertyCard, PropertyDetail, etc.
@@ -294,7 +294,7 @@ boxShadow:    { card: '0 2px 12px rgba(0,0,0,0.07)' }
 
 Before an agent can create their first listing, **both** of the following must be `approved` in the `verifications` table:
 
-1. `type: 'nin'` — verified via YouVerify (confidence ≥ 85%)
+1. `type: 'nin'` — verified via Dojah
 2. At least one of: `type: 'lasrera' | 'esvarbon' | 'niesv' | 'aean' | 'ercaan' | 'redan'`
 
 LASRERA is the Lagos State statutory regulator and should be surfaced as the recommended option in the UI.
@@ -318,9 +318,10 @@ pending_payment → funds_held → docs_verified → key_handover_pending → co
 
 ## Key External API Notes
 
-### YouVerify (NIN)
-- Endpoint: POST `/v2/api/biometrics/merchant/data/verification/nin-face-match`
-- Approval threshold: confidence score **≥ 85%**
+### Dojah (NIN)
+- Endpoint: POST `/api/v1/kyc/nin`
+- Auth: `AppId` + `Authorization` headers
+- Approval: any successful identity match auto-approves
 - Fallback: if API is down, queue as `pending` and allow partial registration
 
 ### Paystack
