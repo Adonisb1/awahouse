@@ -1,5 +1,6 @@
-import { Building2 } from 'lucide-react';
+import { Building2, User } from 'lucide-react';
 import Link from 'next/link';
+import { RoleSwitcher } from '@/components/ui/RoleSwitcher';
 
 export default function TenantLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -10,6 +11,16 @@ export default function TenantLayout({ children }: { children: React.ReactNode }
             <Building2 className="h-5 w-5" />
             Awa
           </Link>
+          <div className="flex items-center gap-2">
+            <Link
+              href="/profile"
+              className="flex h-9 w-9 items-center justify-center rounded-lg text-charcoal/60 transition-colors hover:bg-surface-sand hover:text-charcoal"
+              aria-label="Profile"
+            >
+              <User className="h-5 w-5" />
+            </Link>
+            <RoleSwitcher />
+          </div>
         </div>
       </header>
       <main>{children}</main>
