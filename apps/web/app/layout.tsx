@@ -5,25 +5,24 @@ import { Providers } from '@/components/Providers';
 
 const playfair = Playfair_Display({
   subsets: ['latin'],
-  variable: '--font-display',
-  display: 'swap',
+  variable: '--font-playfair',
+  weight: ['400','700','900'],
+  style: ['normal','italic'],
 });
 
-const dmSans = DM_Sans({
-  subsets: ['latin'],
-  variable: '--font-body',
-  display: 'swap',
+const dmSans = DM_Sans({ 
+  subsets: ['latin'], 
+  variable: '--font-sans' 
 });
 
-const dmMono = DM_Mono({
-  subsets: ['latin'],
-  weight: ['400'],
-  variable: '--font-mono',
-  display: 'swap',
+const dmMono = DM_Mono({ 
+  subsets: ['latin'], 
+  variable: '--font-mono', 
+  weight: ['400','500'] 
 });
 
 export const metadata: Metadata = {
-  title: 'Awahouse — Verified Property Marketplace',
+  title: 'Awahouse — Lagos Verified Property Marketplace',
   description: 'Nigeria\'s verified property marketplace. Multi-layer verified listings, escrow protection, and rent monthly.',
   icons: { icon: '/favicon.ico' },
 };
@@ -32,6 +31,7 @@ export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   themeColor: '#C4531C',
+  viewportFit: 'cover',
 };
 
 export default function RootLayout({
@@ -42,9 +42,9 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${playfair.variable} ${dmSans.variable} ${dmMono.variable}`}
+      className={`${playfair.variable} ${dmSans.variable} ${dmMono.variable} h-full`}
     >
-      <body>
+      <body className="font-sans bg-sand min-h-full text-charcoal selection:bg-terra-50">
         <Providers>{children}</Providers>
       </body>
     </html>
