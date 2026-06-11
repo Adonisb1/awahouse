@@ -34,6 +34,21 @@ export function TRPCProvider({ children }: { children: React.ReactNode }) {
         httpBatchLink({
           url: `${getBaseUrl()}/api/trpc`,
           transformer: superjson,
+          headers() {
+            if (typeof window === 'undefined') return {};
+            const raw = localStorage.getItem('awahouse-auth');
+            if (!raw) return {};
+            try {
+              const state = JSON.parse(raw);
+              const h: Record<string, string> = {};
+              if (state.state?.userId) h['x-user-id'] = state.state.userId;
+              if (state.state?.activeRole) h['x-user-active-role'] = state.state.activeRole;
+              if (state.state?.roles?.length) h['x-user-roles'] = state.state.roles.join(',');
+              return h;
+            } catch {
+              return {};
+            }
+          },
         }),
       ],
     }),
