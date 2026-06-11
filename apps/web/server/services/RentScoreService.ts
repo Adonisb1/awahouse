@@ -19,7 +19,7 @@ const MIN_SCORE = 300;
 const MAX_SCORE = 850;
 const INITIAL_SCORE = 500;
 
-function clampScore(score: number): number {
+export function clampScore(score: number): number {
   return Math.max(MIN_SCORE, Math.min(MAX_SCORE, score));
 }
 
