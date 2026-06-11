@@ -1,49 +1,107 @@
 'use client';
 
-import { StarRating } from './StarRating';
-import { Card, CardContent } from '@/components/ui/Card';
-import { Badge } from '@/components/ui/Badge';
+import * as React from 'react';
+import { ThumbsUp } from 'lucide-react';
+import { cn } from '@/lib/utils/cn';
+import { StarRating } from '@/components/ui/StarRating';
+import { VerifiedBadge } from '@/components/ui/VerifiedBadge';
 
-type ReviewCardProps = {
-  review: {
-    id: string;
-    rating: number;
-    comment?: string | null;
-    isVerified: boolean;
-    createdAt: string | Date;
-    reviewer: {
-      firstName?: string | null;
-      lastName?: string | null;
-    };
-  };
-};
+interface ReviewCardProps {
+  id: string;
+  authorName: string;
+  authorInitials: string;
+  authorAvatarUrl: string | null;
+  rating: number;
+  body: string;
+  createdAt: string;
+  isVerifiedTransaction: boolean;
+  helpfulCount: number;
+  onMarkHelpful: (_id: string) => void;
+}
 
-export function ReviewCard({ review }: ReviewCardProps) {
-  const date = new Date(review.createdAt).toLocaleDateString('en-NG', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  });
+const ReviewCard: React.FC<ReviewCardProps> = ({
+  id,
+  authorName,
+  authorInitials,
+  authorAvatarUrl,
+  rating,
+  body,
+  createdAt,
+  isVerifiedTransaction,
+  helpfulCount,
+  onMarkHelpful,
+}) => {
+  const [isExpanded, setIsExpanded] = React.useState(false);
+  const bodyRef = React.useRef<HTMLParagraphElement>(null);
+  const [isClamped, setIsClamped] = React.useState(false);
+
+  React.useEffect(() => {
+    if (bodyRef.current) {
+      const { scrollHeight, clientHeight } = bodyRef.current;
+      setIsClamped(scrollHeight > clientHeight);
+    }
+  }, [body]);
 
   return (
-    <Card>
-      <CardContent className="pt-6">
-        <div className="flex items-start justify-between mb-2">
-          <div>
-            <p className="font-body font-medium text-charcoal">
-              {review.reviewer.firstName ?? 'Anonymous'} {review.reviewer.lastName ?? ''}
-            </p>
-            <StarRating rating={review.rating} size="sm" />
+    <div className="bg-white border border-outline-variant rounded-card p-5 shadow-sm">
+      <div className="flex justify-between items-start mb-4">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-sand-deep flex items-center justify-center text-charcoal font-bold text-sm border-2 border-white shadow-sm overflow-hidden">
+            {authorAvatarUrl ? (
+              <img src={authorAvatarUrl} alt={authorName} className="w-full h-full object-cover" />
+            ) : (
+              authorInitials
+            )}
           </div>
-          <div className="flex items-center gap-2">
-            {!review.isVerified && <Badge variant="pending">Unverified</Badge>}
-            <span className="font-body text-xs text-charcoal/40">{date}</span>
+          <div>
+            <h5 className="font-bold text-charcoal text-sm leading-none mb-1">{authorName}</h5>
+            <StarRating rating={rating} size="sm" />
           </div>
         </div>
-        {review.comment && (
-          <p className="mt-2 font-body text-sm text-charcoal/70 leading-relaxed">{review.comment}</p>
+        <span className="text-[11px] font-mono text-muted uppercase tracking-wider">
+          {createdAt}
+        </span>
+      </div>
+
+      {isVerifiedTransaction && (
+        <div className="mb-3">
+          <VerifiedBadge type="transaction_verified" size="sm" />
+        </div>
+      )}
+
+      <div className="relative">
+        <p
+          ref={bodyRef}
+          className={cn(
+            'text-sm text-muted leading-relaxed font-sans transition-all duration-300',
+            !isExpanded && 'line-clamp-3'
+          )}
+        >
+          {body}
+        </p>
+        {isClamped && !isExpanded && (
+          <button
+            onClick={() => setIsExpanded(true)}
+            className="text-terra font-bold text-xs mt-1 hover:underline focus:outline-none"
+          >
+            Read more
+          </button>
         )}
-      </CardContent>
-    </Card>
+      </div>
+
+      <div className="mt-4 flex items-center justify-between border-t border-outline-variant pt-4">
+        <button
+          onClick={() => onMarkHelpful(id)}
+          className="flex items-center gap-2 text-muted hover:text-terra transition-colors group"
+        >
+          <ThumbsUp size={14} className="group-active:scale-125 transition-transform" />
+          <span className="text-[11px] font-mono font-medium">
+            Helpful ({helpfulCount})
+          </span>
+        </button>
+      </div>
+    </div>
   );
-}
+};
+
+export { ReviewCard };
