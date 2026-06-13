@@ -47,3 +47,18 @@ export async function scheduleInstalmentJobs(instalmentId: string, dueDate: Date
 
   console.log(`[scheduler] Instalment job scheduled for ${instalmentId} (delay: ${Math.round(delay / 3600000)}h)`);
 }
+
+export async function scheduleOverdueScan() {
+  const queue = getRentQueue();
+  if (!queue) {
+    console.warn('[scheduler] Rent queue unavailable — skipping overdue scan scheduling');
+    return;
+  }
+
+  await queue.add('scan-overdue', {}, {
+    repeat: { every: 60 * 60 * 1000 },
+    jobId: 'scan-overdue-recurring',
+  });
+
+  console.log('[scheduler] Overdue scan scheduled (every 60 minutes)');
+}

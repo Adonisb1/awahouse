@@ -11,6 +11,11 @@ type TransferResponse = {
   reference: string;
 };
 
+type TransferRecipientResponse = {
+  success: boolean;
+  recipientCode: string;
+};
+
 type VerifyResponse = {
   success: boolean;
   status: 'success' | 'failed' | 'pending';
@@ -83,6 +88,37 @@ class PaystackClient {
       success: data.status,
       transferCode: data.data.transfer_code,
       reference: data.data.reference,
+    };
+  }
+
+  async createTransferRecipient(
+    name: string,
+    accountNumber: string,
+    bankCode: string,
+  ): Promise<TransferRecipientResponse> {
+    if (!process.env.PAYSTACK_SECRET_KEY) {
+      return { success: true, recipientCode: 'stub_recipient' };
+    }
+
+    const response = await fetch('https://api.paystack.co/transferrecipient', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        type: 'nuban',
+        name,
+        account_number: accountNumber,
+        bank_code: bankCode,
+        currency: 'NGN',
+      }),
+    });
+
+    const data = await response.json() as { status: boolean; data: { recipient_code: string } };
+    return {
+      success: data.status,
+      recipientCode: data.data.recipient_code,
     };
   }
 

@@ -10,15 +10,54 @@ import { BottomNav } from '@/components/layout/BottomNav';
 import { StarRating } from '@/components/ui/StarRating';
 import { ReviewCard } from '@/components/reviews/ReviewCard';
 import { Button } from '@/components/ui/Button';
-import { mockReviews, mockProperties } from '@/lib/mock';
+import { Skeleton } from '@/components/ui/Skeleton';
+import { trpc } from '@/lib/trpc/react';
 
 export default function ReviewsPage() {
   const params = useParams();
   const propertyId = params.id as string;
-  const property = (mockProperties.find(p => p.id === propertyId) || mockProperties[0])!;
-  
+
   const [activeFilter, setActiveFilter] = React.useState('All');
   const [showWriteSheet, setShowWriteSheet] = React.useState(false);
+  const [rating, setRating] = React.useState(0);
+  const [comment, setComment] = React.useState('');
+  const [submitError, setSubmitError] = React.useState('');
+
+  const utils = trpc.useUtils();
+  const { data: property } = trpc.properties.getById.useQuery({ id: propertyId });
+  const { data: reviewsData, isLoading: reviewsLoading } = trpc.reviews.list.useQuery({ propertyId });
+  const { data: aggregateData } = trpc.reviews.aggregateRating.useQuery({ propertyId });
+  const createReview = trpc.reviews.create.useMutation();
+
+  const reviews = (reviewsData?.reviews ?? []) as any[];
+  const aggregate = aggregateData?.average;
+
+  const handleSubmitReview = async () => {
+    if (rating < 1) return;
+    setSubmitError('');
+    try {
+      await createReview.mutateAsync({
+        revieweeId: property?.ownerId ?? '',
+        propertyId,
+        type: 'property',
+        rating,
+        comment: comment || undefined,
+      });
+      setShowWriteSheet(false);
+      setRating(0);
+      setComment('');
+      utils.reviews.list.invalidate({ propertyId });
+      utils.reviews.aggregateRating.invalidate({ propertyId });
+    } catch (e: any) {
+      setSubmitError(e?.message ?? 'Failed to submit review');
+    }
+  };
+
+  const filteredReviews = activeFilter === 'All'
+    ? reviews
+    : activeFilter === 'Critical'
+      ? reviews.filter(r => r.rating <= 2)
+      : reviews.filter(r => r.rating === parseInt(activeFilter));
 
   return (
     <div className="flex flex-col min-h-screen bg-sand pb-[80px]">
@@ -27,37 +66,44 @@ export default function ReviewsPage() {
       <div className="flex-1 overflow-y-auto px-4 py-6">
         {/* Rating Overview */}
         <section className="flex flex-col items-center mb-10">
-          <span className="text-6xl font-playfair font-black text-success mb-2">
-            {property.rating}
-          </span>
-          <StarRating rating={property.rating || 0} size="lg" className="mb-2" />
-          <span className="text-[13px] text-muted font-mono uppercase tracking-widest">
-            {property.reviewCount} verified reviews
-          </span>
+          {aggregate != null ? (
+            <>
+              <span className="text-6xl font-playfair font-black text-success mb-2">
+                {aggregate.toFixed(1)}
+              </span>
+              <StarRating rating={Math.round(aggregate)} size="lg" className="mb-2" />
+              <span className="text-[13px] text-muted font-mono uppercase tracking-widest">
+                {reviews.length} {reviews.length === 1 ? 'review' : 'reviews'}
+              </span>
+            </>
+          ) : (
+            <div className="flex flex-col items-center gap-2">
+              <Skeleton className="w-20 h-12" />
+              <Skeleton className="w-40 h-4" />
+            </div>
+          )}
         </section>
 
         {/* Rating Bars */}
         <section className="space-y-3 mb-10">
-          {[
-            { stars: 5, pct: 78 },
-            { stars: 4, pct: 17 },
-            { stars: 3, pct: 4 },
-            { stars: 2, pct: 0 },
-            { stars: 1, pct: 1 },
-          ].map((item) => (
-            <div key={item.stars} className="flex items-center gap-4">
-              <span className="text-xs font-bold text-muted w-4">{item.stars}★</span>
-              <div className="flex-1 h-2 bg-sand-deep rounded-full overflow-hidden">
-                <motion.div
-                  initial={{ width: 0 }}
-                  animate={{ width: `${item.pct}%` }}
-                  transition={{ duration: 1, ease: 'easeOut' }}
-                  className="h-full bg-success"
-                />
+          {[5, 4, 3, 2, 1].map((stars) => {
+            const count = reviews.filter(r => r.rating === stars).length;
+            const pct = reviews.length > 0 ? (count / reviews.length) * 100 : 0;
+            return (
+              <div key={stars} className="flex items-center gap-4">
+                <span className="text-xs font-bold text-muted w-4">{stars}★</span>
+                <div className="flex-1 h-2 bg-sand-deep rounded-full overflow-hidden">
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: `${pct}%` }}
+                    transition={{ duration: 1, ease: 'easeOut' }}
+                    className="h-full bg-success"
+                  />
+                </div>
+                <span className="text-[10px] font-mono text-muted w-8">{Math.round(pct)}%</span>
               </div>
-              <span className="text-[10px] font-mono text-muted w-8">{item.pct}%</span>
-            </div>
-          ))}
+            );
+          })}
         </section>
 
         {/* Write Review CTA */}
@@ -71,7 +117,7 @@ export default function ReviewsPage() {
                 <MessageSquare size={20} />
               </div>
               <div className="text-left">
-                <h4 className="font-bold text-terra-dark text-sm">You stayed here</h4>
+                <h4 className="font-bold text-terra-dark text-sm">Write a Review</h4>
                 <p className="text-xs text-terra/70">Share your experience with others</p>
               </div>
             </div>
@@ -100,11 +146,21 @@ export default function ReviewsPage() {
         </section>
 
         {/* Reviews List */}
-        <div className="space-y-4">
-          {mockReviews.map((review) => (
-            <ReviewCard key={review.id} {...review} onMarkHelpful={() => {}} />
-          ))}
-        </div>
+        {reviewsLoading ? (
+          <div className="space-y-4">
+            {[1, 2, 3].map((i) => <Skeleton key={i} className="h-32 w-full rounded-card" />)}
+          </div>
+        ) : filteredReviews.length === 0 ? (
+          <div className="bg-white border border-outline-variant rounded-card p-8 text-center shadow-sm">
+            <p className="text-sm text-charcoal/60">No reviews yet. Be the first!</p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {filteredReviews.map((review) => (
+              <ReviewCard key={review.id} {...review as any} onMarkHelpful={() => {}} />
+            ))}
+          </div>
+        )}
       </div>
 
       <BottomNav role="TENANT" />
@@ -139,8 +195,14 @@ export default function ReviewsPage() {
                 </button>
               </div>
 
+              {submitError && (
+                <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl px-4 py-3 mb-4">
+                  {submitError}
+                </div>
+              )}
+
               <div className="mb-8 flex flex-col items-center">
-                <StarRating rating={0} interactive size="lg" />
+                <StarRating rating={rating} size="lg" interactive onChange={setRating} />
                 <p className="text-[10px] font-mono text-muted uppercase tracking-widest mt-2">Tap to rate</p>
               </div>
 
@@ -149,16 +211,25 @@ export default function ReviewsPage() {
                   placeholder="How was your stay? Consider the location, agent, and property condition..."
                   className="w-full min-h-[160px] p-4 rounded-input border border-outline-variant bg-sand/30 font-sans text-sm focus:border-terra outline-none transition-all resize-none"
                   maxLength={1000}
+                  value={comment}
+                  onChange={(e) => setComment(e.target.value)}
                 />
                 <div className="flex justify-between mt-2">
                   <div className="bg-success-bg text-success text-[10px] font-mono px-2 py-0.5 rounded-badge border border-success/20">
                     ✓ Verified Transaction
                   </div>
-                  <span className="text-[10px] font-mono text-muted uppercase">0 / 1000</span>
+                  <span className="text-[10px] font-mono text-muted uppercase">{comment.length} / 1000</span>
                 </div>
               </div>
 
-              <Button variant="primary" size="lg" fullWidth onClick={() => setShowWriteSheet(false)}>
+              <Button
+                variant="primary"
+                size="lg"
+                fullWidth
+                loading={createReview.isPending}
+                disabled={rating < 1}
+                onClick={handleSubmitReview}
+              >
                 Submit Review
               </Button>
             </motion.div>

@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ShieldCheck, CheckCircle2, Key, CreditCard, FileText, AlertCircle, Info, User as UserIcon } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
@@ -50,6 +50,7 @@ function getStepState(stepKey: string, currentIdx: number, terminalIdx: number |
 
 export default function EscrowDashboardPage() {
   const params = useParams();
+  const router = useRouter();
   const escrowId = params.id as string;
 
   const [error, setError] = React.useState('');
@@ -59,7 +60,12 @@ export default function EscrowDashboardPage() {
     { refetchInterval: (query) => query.state.data?.status === 'pending_payment' ? 5000 : false },
   );
   const confirmMutation = trpc.escrow.confirmHandover.useMutation({
-    onSuccess: () => utils.escrow.getById.invalidate({ id: escrowId }),
+    onSuccess: (data) => {
+      utils.escrow.getById.invalidate({ id: escrowId });
+      if (data.showReviewPrompt && data.propertyId) {
+        router.push(`/property/${data.propertyId}/reviews`);
+      }
+    },
     onError: (err) => setError(err.message),
   });
   const disputeMutation = trpc.escrow.raiseDispute.useMutation({
@@ -371,6 +377,14 @@ export default function EscrowDashboardPage() {
               <span className="text-muted">Rent Monthly</span>
               <span className="font-medium text-charcoal">{transaction.rentMonthly ? 'Yes' : 'No'}</span>
             </div>
+            {transaction.rentMonthly && (
+              <div className="flex justify-between">
+                <span className="text-muted">Schedule</span>
+                <a href="/rent-instalments" className="font-medium text-terra hover:underline text-sm">
+                  View Schedule &rarr;
+                </a>
+              </div>
+            )}
           </div>
         </div>
       </div>

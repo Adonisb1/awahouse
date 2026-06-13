@@ -253,6 +253,29 @@ export class RentScoreService {
       this.recordEvent(instalment.userId, 'missed_payment', instalment.escrowId),
     ]);
   }
+
+  async scanOverdueInstalments() {
+    const now = new Date();
+    const overdueThreshold = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000);
+    const missedThreshold = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+    const overdue = await prisma.rentInstalment.findMany({
+      where: {
+        status: 'scheduled',
+        dueDate: { lte: overdueThreshold },
+      },
+    });
+
+    for (const inst of overdue) {
+      if (inst.dueDate <= missedThreshold) {
+        await this.markMissed(inst.id);
+      } else {
+        await this.markOverdue(inst.id);
+      }
+    }
+
+    return { processed: overdue.length };
+  }
 }
 
 export const rentScoreService = new RentScoreService();

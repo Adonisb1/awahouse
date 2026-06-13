@@ -1,6 +1,6 @@
 import { Worker } from 'bullmq';
 import IORedis from 'ioredis';
-import { processAutoRelease, processRemindHandover, processInstalmentCharge } from './processors';
+import { processAutoRelease, processRemindHandover, processInstalmentCharge, processScanOverdue } from './processors';
 
 const redisUrl = process.env.REDIS_URL;
 const redisHost = process.env.REDIS_HOST;
@@ -62,6 +62,10 @@ const rentWorker = new Worker(
       case 'charge-instalment': {
         const { instalmentId } = job.data as { instalmentId: string };
         await processInstalmentCharge(instalmentId);
+        break;
+      }
+      case 'scan-overdue': {
+        await processScanOverdue();
         break;
       }
       default:

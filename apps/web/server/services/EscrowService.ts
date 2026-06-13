@@ -2,6 +2,8 @@ import crypto from 'crypto';
 import { TRPCError } from '@trpc/server';
 import { prisma } from '@awahouse/db';
 import { paymentRouter } from '@/lib/payments/router';
+import { paystackClient } from '@/lib/paystack/client';
+import { decrypt } from '@/lib/crypto/encrypt';
 import { scheduleEscrowJobs } from '@/workers/scheduler';
 import type { EscrowStatus } from '@awahouse/types';
 
@@ -135,6 +137,8 @@ export class EscrowService {
       data: { completedAt: new Date() },
     });
 
+    await this.payout(escrowId);
+
     return result;
   }
 
@@ -171,6 +175,7 @@ export class EscrowService {
         where: { id: escrowId },
         data: { completedAt: new Date() },
       });
+      await this.payout(escrowId);
       return result;
     }
 
@@ -186,6 +191,7 @@ export class EscrowService {
       where: { id: escrowId },
       data: { completedAt: new Date() },
     });
+    await this.payout(escrowId);
     return result;
   }
 
@@ -195,6 +201,64 @@ export class EscrowService {
 
   async adminRefund(escrowId: string, adminId: string) {
     return this._transition(escrowId, 'refunded', adminId, 'Admin refunded to tenant');
+  }
+
+  async payout(escrowId: string) {
+    const escrow = await prisma.escrowTransaction.findUnique({
+      where: { id: escrowId },
+      include: {
+        landlord: {
+          include: { landlordProfile: true },
+        },
+      },
+    });
+    if (!escrow || escrow.isDeleted) {
+      throw new TRPCError({ code: 'NOT_FOUND', message: 'Escrow not found' });
+    }
+    if (escrow.status !== 'completed') {
+      throw new TRPCError({ code: 'BAD_REQUEST', message: 'Can only payout completed escrows' });
+    }
+    if (escrow.payoutReference) {
+      return { success: true, payoutReference: escrow.payoutReference };
+    }
+
+    const profile = escrow.landlord.landlordProfile;
+    if (!profile?.bankAccount || !profile.bankCode) {
+      console.warn(`[payout] No bank details for landlord ${escrow.landlordId}, skipping payout`);
+      return { success: false, reason: 'no_bank_details' };
+    }
+
+    const bankAccount = decrypt(profile.bankAccount);
+    const amountKobo = escrow.amountKobo - (escrow.platformFeeKobo ?? BigInt(0));
+    const landlordName = `${escrow.landlord.firstName ?? ''} ${escrow.landlord.lastName ?? ''}`.trim() || 'Landlord';
+    const reference = `AWA-PAYOUT-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
+
+    const recipient = await paystackClient.createTransferRecipient(
+      landlordName,
+      bankAccount,
+      profile.bankCode,
+    );
+    if (!recipient.success) {
+      console.error(`[payout] Failed to create recipient for escrow ${escrowId}`);
+      return { success: false, reason: 'recipient_failed' };
+    }
+
+    const transfer = await paystackClient.initiateTransfer(amountKobo, recipient.recipientCode, reference);
+    if (!transfer.success) {
+      console.error(`[payout] Transfer failed for escrow ${escrowId}`);
+      return { success: false, reason: 'transfer_failed' };
+    }
+
+    await prisma.escrowTransaction.update({
+      where: { id: escrowId },
+      data: {
+        payoutReference: transfer.reference,
+        payoutTransferCode: transfer.transferCode,
+      },
+    });
+
+    console.log(`[payout] Initiated payout for escrow ${escrowId}: ${transfer.reference}`);
+    return { success: true, payoutReference: transfer.reference };
   }
 
   async getById(escrowId: string, userId: string) {

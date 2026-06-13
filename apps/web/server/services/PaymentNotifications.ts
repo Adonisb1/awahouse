@@ -113,3 +113,142 @@ export async function notifyHandoverConfirmed(escrowId: string) {
     }),
   ]);
 }
+
+export async function notifyEscrowInitiated(escrowId: string) {
+  const escrow = await loadEscrow(escrowId);
+  if (!escrow) return;
+
+  const propertyTitle = escrow.property.title;
+
+  await Promise.allSettled([
+    notificationService.sendAll(['in_app', 'email'], {
+      userId: escrow.tenantId,
+      title: 'PaymentAgreement',
+      body: `Your escrow for "${propertyTitle}" has been initiated. Complete payment to proceed.`,
+      link: `/escrow/${escrowId}`,
+      email: escrow.tenant.email ?? undefined,
+    }),
+    notificationService.sendAll(['in_app', 'email'], {
+      userId: escrow.landlordId,
+      title: 'PaymentAgreement',
+      body: `A tenant has initiated escrow for "${propertyTitle}". You will be notified once payment is confirmed.`,
+      link: `/landlord/escrow/${escrowId}`,
+      email: escrow.landlord.email ?? undefined,
+    }),
+  ]);
+}
+
+export async function notifyCancelled(escrowId: string) {
+  const escrow = await loadEscrow(escrowId);
+  if (!escrow) return;
+
+  const propertyTitle = escrow.property.title;
+
+  await Promise.allSettled([
+    notificationService.sendAll(['in_app', 'email'], {
+      userId: escrow.tenantId,
+      title: 'EscrowRefunded',
+      body: `Your escrow for "${propertyTitle}" has been cancelled.`,
+      link: `/escrow/${escrowId}`,
+      email: escrow.tenant.email ?? undefined,
+    }),
+    notificationService.sendAll(['in_app'], {
+      userId: escrow.landlordId,
+      title: 'EscrowRefunded',
+      body: `The escrow for "${propertyTitle}" has been cancelled.`,
+      link: `/landlord/escrow/${escrowId}`,
+    }),
+  ]);
+}
+
+export async function notifyDocsVerified(escrowId: string) {
+  const escrow = await loadEscrow(escrowId);
+  if (!escrow) return;
+
+  const propertyTitle = escrow.property.title;
+
+  await Promise.allSettled([
+    notificationService.sendAll(['in_app', 'email'], {
+      userId: escrow.tenantId,
+      title: 'DocumentsVerified',
+      body: `Property documents for "${propertyTitle}" have been verified by our team.`,
+      link: `/escrow/${escrowId}`,
+      email: escrow.tenant.email ?? undefined,
+    }),
+    notificationService.sendAll(['in_app', 'email'], {
+      userId: escrow.landlordId,
+      title: 'DocumentsVerified',
+      body: `Your documents for "${propertyTitle}" have been verified. Next step: key handover.`,
+      link: `/landlord/escrow/${escrowId}`,
+      email: escrow.landlord.email ?? undefined,
+    }),
+  ]);
+}
+
+export async function notifyHandoverPending(escrowId: string) {
+  const escrow = await loadEscrow(escrowId);
+  if (!escrow) return;
+
+  const propertyTitle = escrow.property.title;
+
+  await Promise.allSettled([
+    notificationService.sendAll(['in_app', 'email'], {
+      userId: escrow.tenantId,
+      title: 'KeyHandoverPending',
+      body: `Key handover for "${propertyTitle}" is ready. Please confirm handover when you receive the keys.`,
+      link: `/escrow/${escrowId}`,
+      email: escrow.tenant.email ?? undefined,
+    }),
+    notificationService.sendAll(['in_app', 'email'], {
+      userId: escrow.landlordId,
+      title: 'KeyHandoverPending',
+      body: `Key handover for "${propertyTitle}" is now pending. The tenant has 48 hours to confirm.`,
+      link: `/landlord/escrow/${escrowId}`,
+      email: escrow.landlord.email ?? undefined,
+    }),
+  ]);
+}
+
+export async function notifyDisputeResolved(escrowId: string, outcome: 'completed' | 'refunded') {
+  const escrow = await loadEscrow(escrowId);
+  if (!escrow) return;
+
+  const amount = formatKobo(escrow.amountKobo);
+  const propertyTitle = escrow.property.title;
+
+  if (outcome === 'completed') {
+    await Promise.allSettled([
+      notificationService.sendAll(['in_app', 'email'], {
+        userId: escrow.tenantId,
+        title: 'DisputeRaised',
+        body: `The dispute for "${propertyTitle}" has been resolved in the landlord's favour. Funds of ${amount} have been released.`,
+        link: `/escrow/${escrowId}`,
+        email: escrow.tenant.email ?? undefined,
+      }),
+      notificationService.sendAll(['in_app', 'email'], {
+        userId: escrow.landlordId,
+        title: 'DisputeRaised',
+        body: `The dispute for "${propertyTitle}" has been resolved in your favour. Funds of ${amount} have been released.`,
+        link: `/landlord/escrow/${escrowId}`,
+        email: escrow.landlord.email ?? undefined,
+      }),
+    ]);
+  } else {
+    await Promise.allSettled([
+      notificationService.sendAll(['in_app', 'email'], {
+        userId: escrow.tenantId,
+        title: 'EscrowRefunded',
+        body: `The dispute for "${propertyTitle}" has been resolved in your favour. ${amount} has been refunded.`,
+        link: `/escrow/${escrowId}`,
+        email: escrow.tenant.email ?? undefined,
+      }),
+      notificationService.sendAll(['in_app', 'email'], {
+        userId: escrow.landlordId,
+        title: 'EscrowRefunded',
+        body: `The dispute for "${propertyTitle}" has been resolved in the tenant's favour. ${amount} has been refunded.`,
+        link: `/landlord/escrow/${escrowId}`,
+        email: escrow.landlord.email ?? undefined,
+      }),
+    ]);
+  }
+}

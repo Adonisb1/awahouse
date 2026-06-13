@@ -13,7 +13,7 @@ import { prisma } from '@awahouse/db';
 import { escrowService } from '../services/EscrowService';
 import { rentScoreService } from '../services/RentScoreService';
 import { notificationService } from '../services/NotificationService';
-import { notifyHandoverConfirmed, notifyDisputeRaised } from '../services/PaymentNotifications';
+import { notifyHandoverConfirmed, notifyDisputeRaised, notifyEscrowInitiated } from '../services/PaymentNotifications';
 
 export const escrowRouter = router({
   initiate: tenantProcedure.input(initiateEscrowInput).mutation(async ({ ctx, input }) => {
@@ -24,6 +24,9 @@ export const escrowRouter = router({
       input.rentMonthly,
       input.callbackUrl,
     );
+
+    await notifyEscrowInitiated(result.escrow.id);
+
     return {
       success: true,
       escrowId: result.escrow.id,

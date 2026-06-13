@@ -251,6 +251,8 @@ model EscrowTransaction {
   disputedAt        DateTime?      @map("disputed_at")
   completedAt       DateTime?      @map("completed_at")
   rentMonthly       Boolean        @default(false) @map("rent_monthly")
+  payoutReference   String?        @map("payout_reference")
+  payoutTransferCode String?       @map("payout_transfer_code")
   isDeleted         Boolean        @default(false) @map("is_deleted")
   createdAt         DateTime       @default(now()) @map("created_at")
   updatedAt         DateTime       @updatedAt @map("updated_at")

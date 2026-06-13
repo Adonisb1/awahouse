@@ -13,6 +13,7 @@ import {
 } from '../schemas/admin';
 import { verificationService } from '../services/VerificationService';
 import { escrowService } from '../services/EscrowService';
+import { notifyDocsVerified, notifyHandoverPending, notifyDisputeResolved } from '../services/PaymentNotifications';
 
 export const adminRouter = router({
   verifyProperty: adminProcedure.input(verifyPropertyInput).mutation(async ({ ctx, input }) => {
@@ -41,6 +42,7 @@ export const adminRouter = router({
 
   releaseFunds: adminProcedure.input(adminReleaseFundsInput).mutation(async ({ ctx, input }) => {
     await escrowService.adminRelease(input.escrowId, ctx.userId!);
+    await notifyDisputeResolved(input.escrowId, 'completed');
     return { success: true };
   }),
 
@@ -50,6 +52,7 @@ export const adminRouter = router({
     } else {
       await escrowService.adminRefund(input.escrowId, ctx.userId!);
     }
+    await notifyDisputeResolved(input.escrowId, input.outcome);
     return { success: true, outcome: input.outcome };
   }),
 
@@ -100,11 +103,13 @@ export const adminRouter = router({
 
   markDocsVerified: adminProcedure.input(escrowActionInput).mutation(async ({ ctx, input }) => {
     await escrowService.markDocsVerified(input.escrowId, ctx.userId!);
+    await notifyDocsVerified(input.escrowId);
     return { success: true };
   }),
 
   markHandoverPending: adminProcedure.input(escrowActionInput).mutation(async ({ ctx, input }) => {
     await escrowService.markHandoverPending(input.escrowId, ctx.userId!);
+    await notifyHandoverPending(input.escrowId);
     return { success: true };
   }),
 

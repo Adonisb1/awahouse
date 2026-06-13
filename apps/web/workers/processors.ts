@@ -3,6 +3,8 @@ import { prisma } from '@awahouse/db';
 import { notificationService } from '@/server/services/NotificationService';
 import { notifyHandoverConfirmed } from '@/server/services/PaymentNotifications';
 import { paymentRouter } from '@/lib/payments/router';
+import { escrowService } from '@/server/services/EscrowService';
+import { rentScoreService } from '@/server/services/RentScoreService';
 import type { EscrowStatus } from '@awahouse/db';
 
 async function logTransition(
@@ -34,6 +36,7 @@ export async function processAutoRelease(escrowId: string) {
   });
   await logTransition(escrowId, 'key_handover_pending', 'completed', 'system', 'Auto-release after 48h');
   await notifyHandoverConfirmed(escrowId);
+  await escrowService.payout(escrowId);
 
   console.log(`[worker] Auto-release: escrow ${escrowId} completed`);
 }
@@ -111,4 +114,10 @@ export async function processInstalmentCharge(instalmentId: string) {
       });
     }
   }
+}
+
+export async function processScanOverdue() {
+  console.log('[worker] Scanning overdue instalments...');
+  const result = await rentScoreService.scanOverdueInstalments();
+  console.log(`[worker] Overdue scan complete — ${result.processed} processed`);
 }
