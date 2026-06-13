@@ -1,8 +1,8 @@
 'use client';
 
 import * as React from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import { Bell, User as UserIcon, AlertCircle, CheckCircle2, Clock, Send } from 'lucide-react';
+import { useParams } from 'next/navigation';
+import { AlertCircle, CheckCircle2, Clock, Send } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import { TopNav } from '@/components/layout/TopNav';
 import { KoboDisplay } from '@/components/ui/KoboDisplay';
@@ -10,7 +10,6 @@ import { Button } from '@/components/ui/Button';
 import { trpc } from '@/lib/trpc/react';
 
 export default function InstalmentDetailsPage() {
-  const router = useRouter();
   const params = useParams();
   const escrowId = params.escrowId as string;
   

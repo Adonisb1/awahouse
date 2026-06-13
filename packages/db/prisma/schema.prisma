@@ -112,7 +112,24 @@ model User {
   rentInstalments  RentInstalment[]
   rentScoreEvents  RentScoreEvent[]
 
+  landlordProfile LandlordProfile?
+
   @@map("users")
+}
+
+model LandlordProfile {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId      String   @unique @map("user_id") @db.Uuid
+  firmName    String?  @map("firm_name")
+  bankName    String?  @map("bank_name")
+  bankCode    String?  @map("bank_code")
+  bankAccount String?  @map("bank_account")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("landlord_profiles")
 }
 
 model Property {

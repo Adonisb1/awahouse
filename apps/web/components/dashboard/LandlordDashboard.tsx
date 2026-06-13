@@ -2,26 +2,28 @@
 
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, Edit2, Trash2, Bell, User as UserIcon } from 'lucide-react';
-import { cn } from '@/lib/utils/cn';
+import { Plus, Edit2, Trash2, User as UserIcon, ArrowRight } from 'lucide-react';
 import { TopNav } from '@/components/layout/TopNav';
 import { KoboDisplay } from '@/components/ui/KoboDisplay';
-import { VerifiedBadge } from '@/components/ui/VerifiedBadge';
+import { EscrowStatusChip } from '@/components/escrow/EscrowStatusChip';
 import { Button } from '@/components/ui/Button';
 import { NotificationBell } from '@/components/layout/NotificationBell';
-import { InstalmentSummary } from '@/components/dashboard/InstalmentSummary';
 import { trpc } from '@/lib/trpc/react';
 
 export function LandlordDashboardView() {
   const router = useRouter();
   const utils = trpc.useUtils();
   const [error, setError] = React.useState('');
-  const { data: result, isLoading } = trpc.properties.listMyProperties.useQuery();
-  const { data: verifications } = trpc.verification.checkStatus.useQuery();
+  const { data: result, isLoading: listingsLoading } = trpc.properties.listMyProperties.useQuery();
+  const { data: escrowsData } = trpc.escrow.list.useQuery({ limit: 5 });
 
   const properties = result?.properties ?? [];
-  const isVerified = verifications?.verifications?.some(v => v.status === 'approved');
-  
+  const escrows = escrowsData?.items ?? [];
+  const activeEscrows = escrows.filter(e => !['completed', 'refunded', 'cancelled'].includes(e.status));
+  const totalPayout = escrows
+    .filter(e => e.status === 'completed')
+    .reduce((sum, e) => sum + Number(e.amountKobo) - Number(e.platformFeeKobo || 0n), 0);
+
   const deleteMutation = trpc.properties.delete.useMutation({
     onSuccess: () => utils.properties.listMyProperties.invalidate(),
     onError: (err) => setError(err.message),
@@ -54,31 +56,64 @@ export function LandlordDashboardView() {
           </div>
         )}
 
-        {/* Stats Row */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
-          {[
-            { label: 'Total Listings', value: String(properties.length) },
-            { label: 'Active Escrows', value: '0' },
-            { label: 'Total Payout', value: '₦0' },
-            { label: 'Rating', value: '—' },
-          ].map((stat) => (
-            <div key={stat.label} className="bg-white border border-outline-variant rounded-card p-6 shadow-sm">
-              <div className="font-mono text-xs uppercase text-muted tracking-widest mb-2">{stat.label}</div>
-              <div className="font-playfair text-3xl font-bold text-terra-dark">{stat.value}</div>
+          <div className="bg-white border border-outline-variant rounded-card p-6 shadow-sm">
+            <div className="font-mono text-xs uppercase text-muted tracking-widest mb-2">Total Listings</div>
+            <div className="font-playfair text-3xl font-bold text-terra-dark">
+              {listingsLoading ? '..' : properties.length}
             </div>
-          ))}
+          </div>
+          <div className="bg-white border border-outline-variant rounded-card p-6 shadow-sm">
+            <div className="font-mono text-xs uppercase text-muted tracking-widest mb-2">Active Escrows</div>
+            <div className="font-playfair text-3xl font-bold text-terra-dark">
+              {escrowsData ? activeEscrows.length : '..'}
+            </div>
+          </div>
+          <div className="bg-white border border-outline-variant rounded-card p-6 shadow-sm">
+            <div className="font-mono text-xs uppercase text-muted tracking-widest mb-2">Total Payout</div>
+            <div className="font-playfair text-3xl font-bold text-terra-dark">
+              {escrowsData ? <KoboDisplay kobo={totalPayout} size="sm" /> : '..'}
+            </div>
+          </div>
+          <div className="bg-white border border-outline-variant rounded-card p-6 shadow-sm">
+            <div className="font-mono text-xs uppercase text-muted tracking-widest mb-2">Rating</div>
+            <div className="font-playfair text-3xl font-bold text-terra-dark">&mdash;</div>
+          </div>
         </div>
 
         <div className="grid md:grid-cols-3 gap-8">
-          {/* Active Escrows */}
           <section className="md:col-span-1 space-y-8">
-            <h3 className="font-playfair text-xl font-bold text-charcoal mb-4">Active Escrows</h3>
-            <div className="bg-white border border-outline-variant rounded-card p-5 shadow-sm text-center text-muted text-sm py-10">
-              No active escrows yet.
+            <div className="flex items-center justify-between">
+              <h3 className="font-playfair text-xl font-bold text-charcoal mb-4">Active Escrows</h3>
+              {activeEscrows.length > 0 && (
+                <Button size="sm" variant="ghost" onClick={() => router.push('/landlord/escrow')}>
+                  View all <ArrowRight className="h-3 w-3 ml-1" />
+                </Button>
+              )}
             </div>
+            {activeEscrows.length > 0 ? (
+              <div className="space-y-3">
+                {activeEscrows.slice(0, 3).map((e) => (
+                  <div
+                    key={e.id}
+                    className="bg-white border border-outline-variant rounded-card p-4 shadow-sm cursor-pointer hover:border-terra transition-colors"
+                    onClick={() => router.push(`/landlord/escrow/${e.id}`)}
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <p className="font-semibold text-sm text-charcoal truncate">{e.property.title}</p>
+                      <EscrowStatusChip status={e.status as any} />
+                    </div>
+                    <KoboDisplay kobo={Number(e.amountKobo)} size="sm" />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="bg-white border border-outline-variant rounded-card p-5 shadow-sm text-center text-muted text-sm py-10">
+                No active escrows yet.
+              </div>
+            )}
           </section>
 
-          {/* My Listings */}
           <section className="md:col-span-2">
             <div className="flex justify-between items-center mb-4">
               <h3 className="font-playfair text-xl font-bold text-charcoal">My Listings</h3>
@@ -92,7 +127,7 @@ export function LandlordDashboardView() {
               </Button>
             </div>
             
-            {isLoading ? (
+            {listingsLoading ? (
                 <div className="space-y-4">
                     {[1, 2].map(i => <div key={i} className="h-24 bg-white rounded-card animate-pulse" />)}
                 </div>

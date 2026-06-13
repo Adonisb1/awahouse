@@ -1,9 +1,13 @@
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 import { router, publicProcedure, authedProcedure } from '../trpc';
-import { sendOtpInput, verifyOtpInput, signInWithGoogleInput, switchRoleInput } from '../schemas/auth';
+import {
+  sendOtpInput, verifyOtpInput, signInWithGoogleInput,
+  switchRoleInput, updateProfileInput,
+} from '../schemas/auth';
 import { createServerSupabaseClient } from '@/lib/auth/supabase';
 import { createOtp, verifyOtp, canRequestOtp } from '@/lib/auth/otp';
+import { encrypt, decrypt } from '@/lib/crypto/encrypt';
 import { verificationService } from '../services/VerificationService';
 import { prisma } from '@awahouse/db';
 
@@ -216,6 +220,80 @@ export const authRouter = router({
         roles: updatedUser.roles,
         activeRole: updatedUser.activeRole,
       };
+    }),
+
+  getProfile: authedProcedure
+    .query(async ({ ctx }) => {
+      const user = await prisma.user.findUnique({
+        where: { id: ctx.userId! },
+        include: { landlordProfile: true },
+      });
+      if (!user) throw new TRPCError({ code: 'NOT_FOUND', message: 'User not found' });
+
+      let bankAccount: string | null = null;
+      if (user.landlordProfile?.bankAccount) {
+        try { bankAccount = decrypt(user.landlordProfile.bankAccount); }
+        catch { bankAccount = null; }
+      }
+
+      return {
+        id: user.id,
+        email: user.email,
+        phone: user.phone,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        avatarUrl: user.avatarUrl,
+        roles: user.roles,
+        activeRole: user.activeRole,
+        rentScore: user.rentScore,
+        landlordProfile: user.landlordProfile
+          ? {
+              firmName: user.landlordProfile.firmName,
+              bankName: user.landlordProfile.bankName,
+              bankCode: user.landlordProfile.bankCode,
+              bankAccount,
+            }
+          : null,
+      };
+    }),
+
+  updateProfile: authedProcedure
+    .input(updateProfileInput)
+    .mutation(async ({ ctx, input }) => {
+      const user = await prisma.user.findUnique({ where: { id: ctx.userId! } });
+      if (!user) throw new TRPCError({ code: 'NOT_FOUND', message: 'User not found' });
+
+      const userUpdate: Record<string, unknown> = {};
+      if (input.firstName !== undefined) userUpdate.firstName = input.firstName;
+      if (input.lastName !== undefined) userUpdate.lastName = input.lastName;
+      if (input.avatarUrl !== undefined) userUpdate.avatarUrl = input.avatarUrl;
+
+      if (Object.keys(userUpdate).length > 0) {
+        await prisma.user.update({ where: { id: ctx.userId! }, data: userUpdate });
+      }
+
+      const hasLandlordFields = input.firmName !== undefined
+        || input.bankName !== undefined
+        || input.bankCode !== undefined
+        || input.bankAccount !== undefined;
+
+      if (hasLandlordFields) {
+        const profileData: Record<string, unknown> = {};
+        if (input.firmName !== undefined) profileData.firmName = input.firmName;
+        if (input.bankName !== undefined) profileData.bankName = input.bankName;
+        if (input.bankCode !== undefined) profileData.bankCode = input.bankCode;
+        if (input.bankAccount !== undefined) {
+          profileData.bankAccount = encrypt(input.bankAccount);
+        }
+
+        await prisma.landlordProfile.upsert({
+          where: { userId: ctx.userId! },
+          create: { userId: ctx.userId!, ...profileData },
+          update: profileData,
+        });
+      }
+
+      return { success: true };
     }),
 
   signOut: authedProcedure

@@ -1,4 +1,4 @@
-import { authedProcedure, tenantProcedure, adminProcedure, router } from '../trpc';
+import { authedProcedure, tenantProcedure, landlordProcedure, adminProcedure, router } from '../trpc';
 import {
   initiateEscrowInput,
   escrowIdInput,
@@ -9,6 +9,7 @@ import {
   adminRefundInput,
   adminResolveDisputeInput,
 } from '../schemas/escrow';
+import { prisma } from '@awahouse/db';
 import { escrowService } from '../services/EscrowService';
 import { rentScoreService } from '../services/RentScoreService';
 import { notificationService } from '../services/NotificationService';
@@ -74,6 +75,39 @@ export const escrowRouter = router({
   cancel: authedProcedure.input(escrowIdInput).mutation(async ({ ctx, input }) => {
     await escrowService.cancel(input.id, ctx.userId!);
     return { success: true };
+  }),
+
+  getLandlordTenants: landlordProcedure.query(async ({ ctx }) => {
+    const escrows = await prisma.escrowTransaction.findMany({
+      where: { landlordId: ctx.userId!, isDeleted: false },
+      include: {
+        tenant: { select: { id: true, firstName: true, lastName: true, email: true, phone: true, avatarUrl: true } },
+        property: { select: { id: true, title: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const tenantMap = new Map<string, {
+      tenant: typeof escrows[0]['tenant'];
+      properties: { id: string; title: string; escrowId: string; status: string }[];
+      lastActivity: Date;
+    }>();
+
+    for (const e of escrows) {
+      const existing = tenantMap.get(e.tenantId);
+      if (existing) {
+        existing.properties.push({ id: e.property.id, title: e.property.title, escrowId: e.id, status: e.status });
+        if (e.createdAt > existing.lastActivity) existing.lastActivity = e.createdAt;
+      } else {
+        tenantMap.set(e.tenantId, {
+          tenant: e.tenant,
+          properties: [{ id: e.property.id, title: e.property.title, escrowId: e.id, status: e.status }],
+          lastActivity: e.createdAt,
+        });
+      }
+    }
+
+    return Array.from(tenantMap.values()).sort((a, b) => b.lastActivity.getTime() - a.lastActivity.getTime());
   }),
 
   adminRelease: adminProcedure.input(adminReleaseInput).mutation(async ({ ctx, input }) => {
