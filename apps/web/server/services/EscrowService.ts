@@ -2,6 +2,7 @@ import crypto from 'crypto';
 import { TRPCError } from '@trpc/server';
 import { prisma } from '@awahouse/db';
 import { paymentRouter } from '@/lib/payments/router';
+import { scheduleEscrowJobs } from '@/workers/scheduler';
 import type { EscrowStatus } from '@awahouse/types';
 
 type StateTransition = {
@@ -280,6 +281,12 @@ export class EscrowService {
         },
       }),
     ]);
+
+    if (toStatus === 'key_handover_pending') {
+      scheduleEscrowJobs(escrowId).catch((err) =>
+        console.error(`[escrow] Failed to schedule auto-release for ${escrowId}:`, err),
+      );
+    }
 
     return updated;
   }

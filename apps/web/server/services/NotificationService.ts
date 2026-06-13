@@ -9,7 +9,7 @@ type NotificationPayload = {
   link?: string;
 };
 
-type EmailTemplate = 'EscrowReceived' | 'FundsReleased' | 'DocumentsVerified' | 'DisputeRaised' | 'InstalmentPaid' | 'InstalmentMissed' | 'ListingApproved' | 'PaymentAgreement';
+type EmailTemplate = 'EscrowReceived' | 'FundsReleased' | 'DocumentsVerified' | 'DisputeRaised' | 'InstalmentPaid' | 'InstalmentMissed' | 'ListingApproved' | 'PaymentAgreement' | 'PaymentReceived' | 'EscrowRefunded' | 'HandoverConfirmed' | 'InstalmentDue';
 
 const EMAIL_SUBJECTS: Record<EmailTemplate, string> = {
   EscrowReceived: 'Payment Received – Awahouse',
@@ -20,6 +20,10 @@ const EMAIL_SUBJECTS: Record<EmailTemplate, string> = {
   InstalmentMissed: 'Instalment Missed – Awahouse',
   ListingApproved: 'Listing Approved – Awahouse',
   PaymentAgreement: 'Payment Agreement – Awahouse',
+  PaymentReceived: 'Payment Received – Awahouse',
+  EscrowRefunded: 'Escrow Refunded – Awahouse',
+  HandoverConfirmed: 'Handover Confirmed – Awahouse',
+  InstalmentDue: 'Instalment Due – Awahouse',
 };
 
 export class NotificationService {

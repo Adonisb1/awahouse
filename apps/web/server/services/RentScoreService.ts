@@ -2,6 +2,7 @@ import crypto from 'crypto';
 import { TRPCError } from '@trpc/server';
 import { prisma, Prisma } from '@awahouse/db';
 import { paymentRouter } from '@/lib/payments/router';
+import { scheduleInstalmentJobs } from '@/workers/scheduler';
 import type { RentScoreEventType } from '@awahouse/types';
 
 const SCORE_DELTAS: Record<RentScoreEventType, number> = {
@@ -115,6 +116,17 @@ export class RentScoreService {
     }
 
     await prisma.rentInstalment.createMany({ data: instalments });
+
+    const created = await prisma.rentInstalment.findMany({
+      where: { escrowId, status: 'scheduled' },
+      orderBy: { instalmentNumber: 'asc' },
+    });
+    for (const inst of created) {
+      scheduleInstalmentJobs(inst.id, inst.dueDate).catch((err) =>
+        console.error(`[rent] Failed to schedule instalment ${inst.id}:`, err),
+      );
+    }
+
     return { count: instalments.length };
   }
 
