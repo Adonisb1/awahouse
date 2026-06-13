@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@awahouse/db';
 import { monnifyClient } from '@/lib/monnify/client';
+import { rentScoreService } from '@/server/services/RentScoreService';
 import { notifyPaymentReceived, notifyRefunded } from '@/server/services/PaymentNotifications';
 import type { EscrowStatus } from '@awahouse/db';
 
@@ -56,10 +57,7 @@ export async function POST(request: NextRequest) {
     if (instalment.status === 'paid') {
       return NextResponse.json({ status: 'already_processed' });
     }
-    await prisma.rentInstalment.update({
-      where: { id: instalment.id },
-      data: { status: 'paid', paidAt: new Date() },
-    });
+    await rentScoreService.confirmInstalmentPayment(instalment.id, paymentReference);
     return NextResponse.json({ status: 'ok' });
   }
 

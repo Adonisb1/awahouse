@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { prisma } from '@awahouse/db';
+import { rentScoreService } from '@/server/services/RentScoreService';
 import { notifyPaymentReceived, notifyRefunded } from '@/server/services/PaymentNotifications';
 import type { EscrowStatus } from '@awahouse/db';
 
@@ -40,7 +41,17 @@ export async function POST(request: NextRequest) {
   });
 
   if (!existing) {
-    return NextResponse.json({ error: 'Escrow not found' }, { status: 404 });
+    const instalment = await prisma.rentInstalment.findFirst({
+      where: { paymentReference: event.data.reference },
+    });
+    if (!instalment) {
+      return NextResponse.json({ error: 'Transaction not found' }, { status: 404 });
+    }
+    if (instalment.status === 'paid') {
+      return NextResponse.json({ status: 'already_processed' });
+    }
+    await rentScoreService.confirmInstalmentPayment(instalment.id, event.data.reference);
+    return NextResponse.json({ status: 'ok' });
   }
 
   if (existing.paymentProvider !== 'paystack') {
