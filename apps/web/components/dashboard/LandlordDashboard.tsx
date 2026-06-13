@@ -9,6 +9,7 @@ import { EscrowStatusChip } from '@/components/escrow/EscrowStatusChip';
 import { Button } from '@/components/ui/Button';
 import { NotificationBell } from '@/components/layout/NotificationBell';
 import { trpc } from '@/lib/trpc/react';
+import { VerificationBanner } from '@/components/dashboard/VerificationBanner';
 
 export function LandlordDashboardView() {
   const router = useRouter();
@@ -16,6 +17,7 @@ export function LandlordDashboardView() {
   const [error, setError] = React.useState('');
   const { data: result, isLoading: listingsLoading } = trpc.properties.listMyProperties.useQuery();
   const { data: escrowsData } = trpc.escrow.list.useQuery({ limit: 5 });
+  const { data: verifications } = trpc.verification.checkStatus.useQuery();
 
   const properties = result?.properties ?? [];
   const escrows = escrowsData?.items ?? [];
@@ -23,6 +25,8 @@ export function LandlordDashboardView() {
   const totalPayout = escrows
     .filter(e => e.status === 'completed')
     .reduce((sum, e) => sum + Number(e.amountKobo) - Number(e.platformFeeKobo || 0n), 0);
+  const hasNinApproved = verifications?.verifications?.some(v => v.type === 'nin' && v.status === 'approved');
+  const verificationStatus = hasNinApproved ? 'verified' : 'pending';
 
   const deleteMutation = trpc.properties.delete.useMutation({
     onSuccess: () => utils.properties.listMyProperties.invalidate(),
@@ -55,6 +59,8 @@ export function LandlordDashboardView() {
             {error}
           </div>
         )}
+
+        <VerificationBanner status={verificationStatus} />
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
           <div className="bg-white border border-outline-variant rounded-card p-6 shadow-sm">

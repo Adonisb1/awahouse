@@ -21,6 +21,8 @@ interface PropertyFormState {
   bedrooms: number;
   bathrooms: number;
   priceYearlyKobo: number;
+  latitude: number;
+  longitude: number;
 }
 
 interface PropertyFormProps {
@@ -42,6 +44,8 @@ export function PropertyForm({ initialData, onSubmit, isSubmitting }: PropertyFo
     bedrooms: 1,
     bathrooms: 1,
     priceYearlyKobo: 0,
+    latitude: 0,
+    longitude: 0,
   });
 
   const nextStep = () => setStep(s => Math.min(s + 1, 4));
@@ -111,6 +115,10 @@ export function PropertyForm({ initialData, onSubmit, isSubmitting }: PropertyFo
                 </div>
               </div>
               <Input label="Full Address" placeholder="No. 12 Street Name, Area" value={form.address} onChangeValue={(val) => setForm({...form, address: val})} className="bg-sand/30" />
+              <div className="grid grid-cols-2 gap-4">
+                <Input label="Latitude" type="number" step="any" placeholder="6.5244" value={String(form.latitude)} onChangeValue={(val) => setForm({...form, latitude: parseFloat(val) || 0})} />
+                <Input label="Longitude" type="number" step="any" placeholder="3.3792" value={String(form.longitude)} onChangeValue={(val) => setForm({...form, longitude: parseFloat(val) || 0})} />
+              </div>
               <Button variant="primary" size="lg" fullWidth onClick={nextStep}>Next Step</Button>
             </motion.div>
         )}

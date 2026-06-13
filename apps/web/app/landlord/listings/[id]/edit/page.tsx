@@ -39,6 +39,8 @@ export default function EditListingPage() {
         bedrooms: data.bedrooms,
         bathrooms: data.bathrooms,
         priceKobo: BigInt(data.priceYearlyKobo || 0),
+        latitude: data.latitude || undefined,
+        longitude: data.longitude || undefined,
         isAvailable: data.isAvailable ?? true,
       });
 

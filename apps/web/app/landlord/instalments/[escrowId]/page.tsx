@@ -14,16 +14,22 @@ export default function InstalmentDetailsPage() {
   const escrowId = params.escrowId as string;
   
   const { data: schedule, isLoading } = trpc.rentInstalments.getSchedule.useQuery({ escrowId });
+  const utils = trpc.useUtils();
   const [sending, setSending] = React.useState(false);
   const [error, setError] = React.useState('');
+  const sendReminders = trpc.rentInstalments.sendInstalmentReminders.useMutation();
 
   const items = schedule?.items ?? [];
   const overdue = items.filter(s => s.status === 'overdue');
   
   const handleSendReminders = async () => {
-    if (confirm(`Send reminders to ${overdue.length} tenants with overdue payments?`)) {
+    if (overdue.length === 0) return;
+    if (confirm(`Send reminders to ${overdue.length} tenant(s) with overdue payments?`)) {
         setSending(true);
-        try { /* TODO: implement sendReminders */ } catch (e: any) { setError(e?.message ?? 'Failed to send reminders'); }
+        try {
+          await sendReminders.mutateAsync({ escrowId });
+          utils.rentInstalments.getSchedule.invalidate({ escrowId });
+        } catch (e: any) { setError(e?.message ?? 'Failed to send reminders'); }
         setSending(false);
     }
   };

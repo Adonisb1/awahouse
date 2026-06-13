@@ -1,6 +1,7 @@
 import { TRPCError } from '@trpc/server';
 import { prisma } from '@awahouse/db';
 import crypto from 'crypto';
+import sharp from 'sharp';
 import type { CreatePropertyInput, UpdatePropertyInput, PropertySearchInput } from '../schemas/properties';
 import { verificationService } from './VerificationService';
 import { uploadFile, getSignedUrl } from '@/lib/r2/client';
@@ -219,12 +220,17 @@ export class PropertyService {
 
       const buffer = Buffer.from(img.fileBase64, 'base64');
 
-      // Stub: log instead of actual sharp resize
-      console.log(`[STUB Sharp] Resizing ${img.fileName} to 1920x1080 -> ${key}`);
-      console.log(`[STUB Sharp] Generating thumbnail 400x300 -> ${thumbKey}`);
+      const resized = await sharp(buffer)
+        .resize(1920, 1080, { fit: 'inside', withoutEnlargement: true })
+        .webp()
+        .toBuffer();
+      const thumbnail = await sharp(buffer)
+        .resize(400, 300, { fit: 'cover' })
+        .webp()
+        .toBuffer();
 
-      await uploadFile(key, buffer, `image/${ext}`);
-      await uploadFile(thumbKey, buffer, `image/${ext}`);
+      await uploadFile(key, resized, 'image/webp');
+      await uploadFile(thumbKey, thumbnail, 'image/webp');
 
       const dbImage = await prisma.propertyImage.create({
         data: {

@@ -24,6 +24,8 @@ const formSchema = z.object({
   bathrooms: z.coerce.number().int().min(0).max(50).default(1),
   lga: z.enum(LGA_LIST, { required_error: 'Select a Local Government Area' }),
   address: z.string().max(500).optional().or(z.literal('')),
+  latitude: z.coerce.number().min(-90).max(90).optional(),
+  longitude: z.coerce.number().min(-180).max(180).optional(),
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -82,6 +84,8 @@ export default function NewListingPage() {
         bathrooms: data.bathrooms,
         lga: data.lga || undefined,
         address: data.address || undefined,
+        latitude: data.latitude,
+        longitude: data.longitude,
       });
 
       if (selectedFiles.length > 0) {
@@ -206,6 +210,11 @@ export default function NewListingPage() {
               value={values.address ?? ''}
               {...register('address')}
             />
+
+            <div className="grid grid-cols-2 gap-4">
+              <Input label="Latitude" type="number" step="any" placeholder="6.5244" {...register('latitude')} />
+              <Input label="Longitude" type="number" step="any" placeholder="3.3792" {...register('longitude')} />
+            </div>
 
             <div className="flex flex-col gap-3 pt-2">
               <label className="font-body text-sm font-medium text-charcoal">Photos (max 10)</label>
