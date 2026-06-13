@@ -1,7 +1,7 @@
 import crypto from 'crypto';
 import { TRPCError } from '@trpc/server';
 import { prisma, Prisma } from '@awahouse/db';
-import { paystackClient } from '@/lib/paystack/client';
+import { paymentRouter } from '@/lib/payments/router';
 import type { RentScoreEventType } from '@awahouse/types';
 
 const SCORE_DELTAS: Record<RentScoreEventType, number> = {
@@ -162,17 +162,30 @@ export class RentScoreService {
     }
 
     const reference = `AWA-RENT-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
-    const charge = await paystackClient.initiateCharge(instalment.amountKobo, tenant.email, reference);
+    const tenantName = `${tenant.firstName ?? ''} ${tenant.lastName ?? ''}`.trim() || tenant.email;
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
+    const result = await paymentRouter.initiateTransaction({
+      amountKobo: instalment.amountKobo,
+      customerEmail: tenant.email,
+      customerName: tenantName,
+      reference,
+      redirectUrl: `${appUrl}/rent-instalments`,
+    });
+
+    await prisma.rentInstalment.update({
+      where: { id: instalmentId },
+      data: { paymentReference: reference },
+    });
 
     return {
       success: true,
-      authorizationUrl: charge.authorizationUrl,
+      authorizationUrl: result.checkoutUrl,
       reference,
       instalmentId,
     };
   }
 
-  async confirmInstalmentPayment(instalmentId: string, paystackReference: string) {
+  async confirmInstalmentPayment(instalmentId: string, paymentReference: string) {
     const instalment = await prisma.rentInstalment.findUnique({
       where: { id: instalmentId },
     });
@@ -186,7 +199,7 @@ export class RentScoreService {
         data: {
           status: 'paid',
           paidAt: new Date(),
-          paystackReference,
+          paymentReference,
         },
       }),
       this.recordEvent(instalment.userId, 'on_time_payment', instalment.escrowId),

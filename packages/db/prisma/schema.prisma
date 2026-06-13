@@ -53,6 +53,11 @@ enum ReviewType {
   agent
 }
 
+enum PaymentProvider {
+  monnify
+  paystack
+}
+
 enum EscrowStatus {
   pending_payment
   funds_held
@@ -222,15 +227,16 @@ model EscrowTransaction {
   amountKobo        BigInt       @map("amount_kobo")
   platformFeeKobo   BigInt       @map("platform_fee_kobo")
   landlordPayoutKobo BigInt      @map("landlord_payout_kobo")
-  paystackReference String?      @map("paystack_reference")
-  paystackAccessCode String?     @map("paystack_access_code")
-  disputeReason     String?      @map("dispute_reason")
-  disputedAt        DateTime?    @map("disputed_at")
-  completedAt       DateTime?    @map("completed_at")
-  rentMonthly       Boolean      @default(false) @map("rent_monthly")
-  isDeleted         Boolean      @default(false) @map("is_deleted")
-  createdAt         DateTime     @default(now()) @map("created_at")
-  updatedAt         DateTime     @updatedAt @map("updated_at")
+  paymentProvider   PaymentProvider @default(monnify) @map("payment_provider")
+  paymentReference  String?        @map("payment_reference")
+  paymentAccessCode String?        @map("payment_access_code")
+  disputeReason     String?        @map("dispute_reason")
+  disputedAt        DateTime?      @map("disputed_at")
+  completedAt       DateTime?      @map("completed_at")
+  rentMonthly       Boolean        @default(false) @map("rent_monthly")
+  isDeleted         Boolean        @default(false) @map("is_deleted")
+  createdAt         DateTime       @default(now()) @map("created_at")
+  updatedAt         DateTime       @updatedAt @map("updated_at")
 
   tenant   User        @relation("TenantEscrows", fields: [tenantId], references: [id])
   landlord User        @relation("LandlordEscrows", fields: [landlordId], references: [id])
@@ -244,7 +250,7 @@ model EscrowTransaction {
   @@index([tenantId])
   @@index([landlordId])
   @@index([status])
-  @@index([paystackReference])
+  @@index([paymentReference])
   @@map("escrow_transactions")
 }
 
@@ -290,7 +296,7 @@ model RentInstalment {
   paidAt            DateTime?            @map("paid_at")
   status            RentInstalmentStatus @default(scheduled)
   retryCount        Int                  @default(0) @map("retry_count")
-  paystackReference String?              @map("paystack_reference")
+  paymentReference  String?              @map("payment_reference")
   createdAt         DateTime             @default(now()) @map("created_at")
   updatedAt         DateTime             @updatedAt @map("updated_at")
 

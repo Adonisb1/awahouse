@@ -35,11 +35,15 @@ export async function POST(request: NextRequest) {
   }
 
   const existing = await prisma.escrowTransaction.findFirst({
-    where: { paystackReference: event.data.reference },
+    where: { paymentReference: event.data.reference },
   });
 
   if (!existing) {
     return NextResponse.json({ error: 'Escrow not found' }, { status: 404 });
+  }
+
+  if (existing.paymentProvider !== 'paystack') {
+    return NextResponse.json({ error: 'Not a Paystack transaction' }, { status: 400 });
   }
 
   const status = existing.status as EscrowStatus;

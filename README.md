@@ -211,9 +211,14 @@ pnpm dev                                          # localhost:3000
 | `SUPABASE_SERVICE_ROLE_KEY` | Yes | Supabase service role key | Supabase dashboard (keep secret) |
 | `DATABASE_URL` | Yes | PostgreSQL connection (pooled :6543) | Supabase connection pooler |
 | `DIRECT_URL` | Yes | PostgreSQL connection (direct :5432) | Supabase direct connection |
-| `PAYSTACK_SECRET_KEY` | Yes | Paystack API secret | Paystack dashboard |
-| `PAYSTACK_PUBLIC_KEY` | Yes | Paystack API public | Paystack dashboard |
-| `NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY` | Yes | Paystack public (client-side) | Paystack dashboard |
+| `MONNIFY_API_KEY` | Yes | Monnify API key (primary provider) | Monnify dashboard |
+| `MONNIFY_SECRET_KEY` | Yes | Monnify secret key | Monnify dashboard |
+| `MONNIFY_CONTRACT_CODE` | Yes | Monnify contract code | Monnify dashboard |
+| `NEXT_PUBLIC_MONNIFY_API_KEY` | Yes | Monnify API key (client-side) | Monnify dashboard |
+| `MONNIFY_BASE_URL` | No | Monnify API base URL (default: sandbox) | Monnify docs |
+| `PAYSTACK_SECRET_KEY` | No | Paystack API secret (fallback) | Paystack dashboard |
+| `PAYSTACK_PUBLIC_KEY` | No | Paystack API public (fallback) | Paystack dashboard |
+| `NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY` | No | Paystack public (client-side fallback) | Paystack dashboard |
 | `DOJAH_APP_ID` | Yes | Dojah application ID | Dojah dashboard |
 | `DOJAH_API_KEY` | Yes | Dojah API key | Dojah dashboard |
 | `DOJAH_BASE_URL` | No | Default: `https://api.dojah.io` | Dojah docs |

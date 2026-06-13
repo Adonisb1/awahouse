@@ -1,7 +1,7 @@
 import crypto from 'crypto';
 import { TRPCError } from '@trpc/server';
 import { prisma } from '@awahouse/db';
-import { paystackClient } from '@/lib/paystack/client';
+import { paymentRouter } from '@/lib/payments/router';
 import type { EscrowStatus } from '@awahouse/types';
 
 type StateTransition = {
@@ -53,6 +53,8 @@ export class EscrowService {
 
     const { platformFeeKobo, landlordPayoutKobo } = calculateFees(amountKobo);
     const reference = `AWA-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
+    const tenantName = `${tenant.firstName ?? ''} ${tenant.lastName ?? ''}`.trim() || tenant.email;
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
 
     const escrow = await prisma.escrowTransaction.create({
       data: {
@@ -63,35 +65,40 @@ export class EscrowService {
         amountKobo,
         platformFeeKobo,
         landlordPayoutKobo,
-        paystackReference: reference,
+        paymentReference: reference,
+        paymentProvider: 'monnify',
         rentMonthly,
       },
     });
 
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
-    const charge = await paystackClient.initiateCharge(
+    const result = await paymentRouter.initiateTransaction({
       amountKobo,
-      tenant.email,
+      customerEmail: tenant.email,
+      customerName: tenantName,
       reference,
-      callbackUrl ?? `${appUrl}/escrow/${escrow.id}`,
-    );
+      redirectUrl: callbackUrl ?? `${appUrl}/escrow/${escrow.id}`,
+    });
 
     await prisma.escrowTransaction.update({
       where: { id: escrow.id },
-      data: { paystackAccessCode: charge.accessCode },
+      data: {
+        paymentAccessCode: result.transactionReference,
+        paymentProvider: result.provider,
+      },
     });
 
     return {
       escrow,
-      authorizationUrl: charge.authorizationUrl,
-      accessCode: charge.accessCode,
+      authorizationUrl: result.checkoutUrl,
+      accessCode: result.transactionReference,
       reference,
+      provider: result.provider,
     };
   }
 
-  async handlePaymentSuccess(paystackReference: string) {
+  async handlePaymentSuccess(paymentReference: string) {
     const escrow = await prisma.escrowTransaction.findFirst({
-      where: { paystackReference },
+      where: { paymentReference },
     });
     if (!escrow) {
       throw new TRPCError({ code: 'NOT_FOUND', message: 'Escrow not found' });
@@ -100,7 +107,7 @@ export class EscrowService {
       return escrow;
     }
 
-    return this._transition(escrow.id, 'funds_held', escrow.tenantId, 'Payment confirmed via Paystack');
+    return this._transition(escrow.id, 'funds_held', escrow.tenantId, 'Payment confirmed');
   }
 
   async cancel(escrowId: string, actorId: string) {

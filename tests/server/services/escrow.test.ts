@@ -95,11 +95,37 @@ describe('Notification schemas', () => {
 });
 
 describe('Paystack signature validation', () => {
-  it('should validate HMAC signature', async () => {
+  it('should reject invalid HMAC signature', async () => {
     const { validatePaystackSignature } = await import('@/lib/paystack/client');
     process.env.PAYSTACK_SECRET_KEY = 'test_secret';
     const body = JSON.stringify({ event: 'charge.success', data: { reference: 'test' } });
     const isValid = validatePaystackSignature(body, 'invalid_signature');
     expect(isValid).toBe(false);
+  });
+});
+
+describe('Monnify signature validation', () => {
+  it('should reject invalid webhook signature', async () => {
+    const { monnifyClient } = await import('@/lib/monnify/client');
+    const body = JSON.stringify({ eventType: 'SUCCESSFUL_COLLECTION', eventData: { paymentReference: 'test' } });
+    const isValid = monnifyClient.validateWebhookSignature(body, 'invalid_signature');
+    expect(isValid).toBe(false);
+  });
+});
+
+describe('Payment Router', () => {
+  it('should fallback from Monnify to Paystack', async () => {
+    const { paymentRouter } = await import('@/lib/payments/router');
+    // Both providers are in stub mode with no env vars, so this should succeed via Monnify stub
+    const result = await paymentRouter.initiateTransaction({
+      amountKobo: 250000000n,
+      customerEmail: 'test@example.com',
+      customerName: 'Test User',
+      reference: 'AWA-TEST-001',
+      redirectUrl: 'http://localhost:3000/escrow/test',
+    });
+    expect(result.provider).toBe('monnify');
+    expect(result.checkoutUrl).toBeTruthy();
+    expect(result.transactionReference).toBeTruthy();
   });
 });

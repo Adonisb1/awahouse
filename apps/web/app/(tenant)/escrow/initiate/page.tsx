@@ -239,10 +239,10 @@ function EscrowInitiateForm() {
           className="shadow-fab"
           icon={<Lock size={20} />}
         >
-          {escrowMutation.isPending ? 'Redirecting to Paystack...' : 'Proceed to Payment'}
+          {escrowMutation.isPending ? 'Redirecting to payment...' : 'Proceed to Payment'}
         </Button>
         <p className="text-[11px] text-muted text-center mt-3 uppercase tracking-widest font-mono">
-          Secured by Paystack
+          Secured by Monnify
         </p>
       </div>
     </div>
