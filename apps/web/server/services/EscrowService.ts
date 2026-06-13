@@ -189,6 +189,10 @@ export class EscrowService {
     return result;
   }
 
+  async markHandoverPending(escrowId: string, adminId: string) {
+    return this._transition(escrowId, 'key_handover_pending', adminId, 'Admin initiated key handover');
+  }
+
   async adminRefund(escrowId: string, adminId: string) {
     return this._transition(escrowId, 'refunded', adminId, 'Admin refunded to tenant');
   }
