@@ -134,6 +134,7 @@ export default function ProfilePage() {
           {menuItems.map((item, i) => (
             <button
               key={i}
+              onClick={() => router.push(item.href)}
               className={cn(
                 "w-full p-4 flex items-center justify-between hover:bg-sand/30 transition-colors border-b border-outline-variant/30 last:border-0",
               )}
