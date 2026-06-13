@@ -1,17 +1,21 @@
 'use client';
 
 import * as React from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import { PropertyForm } from '@/components/property/PropertyForm';
 import { TopNav } from '@/components/layout/TopNav';
 import { trpc } from '@/lib/trpc/react';
 
 const VALID_TYPES = ['apartment', 'duplex', 'bungalow', 'studio', 'commercial'] as const;
 
-export default function CreateListingPage() {
+export default function EditListingPage() {
   const router = useRouter();
+  const params = useParams();
+  const propertyId = params.id as string;
+  
   const [error, setError] = React.useState('');
-  const createMutation = trpc.properties.create.useMutation();
+  const { data: property, isLoading } = trpc.properties.getById.useQuery({ id: propertyId });
+  const updateMutation = trpc.properties.update.useMutation();
 
   const handleSubmit = async (data: any) => {
     try {
@@ -21,32 +25,42 @@ export default function CreateListingPage() {
           setError(`Invalid property type: ${data.type}`);
           return;
         }
-        await createMutation.mutateAsync({
+        await updateMutation.mutateAsync({
+            id: propertyId,
             title: data.title,
             description: data.description || undefined,
             address: data.address || undefined,
             lga: data.lga || undefined,
             type: type as typeof VALID_TYPES[number],
-            bedrooms: data.bedrooms ?? 1,
-            bathrooms: data.bathrooms ?? 1,
+            bedrooms: data.bedrooms,
+            bathrooms: data.bathrooms,
             priceKobo: BigInt(data.priceYearlyKobo || 0),
+            isAvailable: data.isAvailable ?? true,
         });
         router.push('/landlord');
     } catch (e: any) {
-        setError(e?.message ?? 'Failed to create listing');
+        setError(e?.message ?? 'Failed to update listing');
     }
   }
 
+  if (isLoading) return <div className="p-8">Loading listing...</div>;
+
   return (
     <div className="flex flex-col min-h-screen bg-sand pb-12">
-      <TopNav variant="back" title="Create Listing" />
+      <TopNav variant="back" title="Edit Listing" />
       <div className="flex-1 px-6 overflow-y-auto">
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl px-4 py-3 mb-4">
             {error}
           </div>
         )}
-        <PropertyForm onSubmit={handleSubmit} isSubmitting={createMutation.isPending} />
+        {property && (
+            <PropertyForm 
+                initialData={property} 
+                onSubmit={handleSubmit} 
+                isSubmitting={updateMutation.isPending} 
+            />
+        )}
       </div>
     </div>
   );

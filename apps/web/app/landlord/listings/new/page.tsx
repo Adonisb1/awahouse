@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import * as React from 'react';
 import { ArrowLeft } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -10,6 +10,7 @@ import { LGA_LIST } from '@awahouse/types';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Card, CardContent } from '@/components/ui/Card';
+import { trpc } from '@/lib/trpc/react';
 
 const TYPES = ['apartment', 'duplex', 'bungalow', 'studio', 'commercial'] as const;
 
@@ -20,7 +21,7 @@ const formSchema = z.object({
   priceNaira: z.coerce.number().positive('Price must be positive'),
   bedrooms: z.coerce.number().int().min(0).max(50).default(1),
   bathrooms: z.coerce.number().int().min(0).max(50).default(1),
-  lga: z.string().min(1, 'Select a Local Government Area'),
+      lga: z.enum(LGA_LIST, { required_error: 'Select a Local Government Area' }),
   address: z.string().max(500).optional().or(z.literal('')),
 });
 
@@ -28,7 +29,15 @@ type FormData = z.infer<typeof formSchema>;
 
 export default function NewListingPage() {
   const router = useRouter();
-  const [submitting, setSubmitting] = useState(false);
+  const utils = trpc.useUtils();
+  const [error, setError] = React.useState('');
+  const createMutation = trpc.properties.create.useMutation({
+    onSuccess: () => {
+      utils.properties.listMyProperties.invalidate();
+      router.push('/landlord/listings');
+    },
+    onError: (err) => setError(err.message),
+  });
 
   const { register, handleSubmit, watch, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -37,29 +46,16 @@ export default function NewListingPage() {
   const values = watch();
 
   async function onSubmit(data: FormData) {
-    setSubmitting(true);
-    const priceKobo = BigInt(Math.round(data.priceNaira * 100));
-    const listing = {
-      id: crypto.randomUUID(),
+    createMutation.mutate({
       title: data.title,
-      description: data.description || null,
+      description: data.description || undefined,
       type: data.type,
-      priceKobo,
+      priceKobo: BigInt(Math.round(data.priceNaira * 100)),
       bedrooms: data.bedrooms,
       bathrooms: data.bathrooms,
-      lga: data.lga,
-      address: data.address || null,
-      status: 'pending',
-      createdAt: new Date().toISOString(),
-    };
-
-    const existing = JSON.parse(localStorage.getItem('awa-listings') ?? '[]');
-    existing.push(listing);
-    localStorage.setItem('awa-listings', JSON.stringify(existing));
-
-    await new Promise((r) => setTimeout(r, 500));
-    setSubmitting(false);
-    router.push('/landlord/listings');
+      lga: data.lga || undefined,
+      address: data.address || undefined,
+    });
   }
 
   return (
@@ -74,6 +70,12 @@ export default function NewListingPage() {
 
       <h1 className="font-display text-3xl italic font-black text-charcoal mb-1">New Listing</h1>
       <p className="font-body text-charcoal/60 mb-8">List a new property for rent or sale</p>
+
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl px-4 py-3 mb-6">
+          {error}
+        </div>
+      )}
 
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-5">
         <Card>
@@ -168,8 +170,8 @@ export default function NewListingPage() {
           <Button variant="secondary" type="button" onClick={() => router.back()}>
             Cancel
           </Button>
-          <Button type="submit" disabled={submitting}>
-            {submitting ? 'Creating...' : 'Create Listing'}
+          <Button type="submit" disabled={createMutation.isPending}>
+            {createMutation.isPending ? 'Creating...' : 'Create Listing'}
           </Button>
         </div>
       </form>

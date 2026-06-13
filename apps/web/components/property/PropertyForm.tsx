@@ -4,12 +4,9 @@ import * as React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ChevronRight, 
-  Upload, 
   Check, 
   Plus, 
   Minus, 
-  Info,
-  ShieldCheck,
   Building,
   Image as ImageIcon
 } from 'lucide-react';
@@ -30,6 +27,21 @@ const amenities = [
 
 const propertyTypes = ['Apartment', 'Duplex', 'Bungalow', 'Studio', 'Flat', 'Terrace'];
 
+interface PropertyFormState {
+  title: string;
+  type: string;
+  lga: string;
+  address: string;
+  bedrooms: number;
+  bathrooms: number;
+  areaSqm: number;
+  priceYearlyKobo: number;
+  serviceChargeKobo: number;
+  depositKobo: number;
+  allowEscrow: boolean;
+  amenities: string[];
+}
+
 interface PropertyFormProps {
   initialData?: any;
   onSubmit: (data: any) => Promise<void>;
@@ -38,7 +50,7 @@ interface PropertyFormProps {
 
 export function PropertyForm({ initialData, onSubmit, isSubmitting }: PropertyFormProps) {
   const [step, setStep] = React.useState(1);
-  const [form, setForm] = React.useState(initialData || {
+  const [form, setForm] = React.useState<PropertyFormState>(initialData as PropertyFormState || {
     title: '',
     type: 'Apartment',
     lga: 'Eti-Osa',
@@ -50,7 +62,7 @@ export function PropertyForm({ initialData, onSubmit, isSubmitting }: PropertyFo
     serviceChargeKobo: 0,
     depositKobo: 0,
     allowEscrow: true,
-    amenities: [] as string[],
+    amenities: [],
   });
 
   const nextStep = () => setStep(s => Math.min(s + 1, 4));
@@ -66,15 +78,15 @@ export function PropertyForm({ initialData, onSubmit, isSubmitting }: PropertyFo
   };
 
   return (
-    <div className="space-y-8">
+    <div className="w-full max-w-xl mx-auto bg-white p-8 rounded-card shadow-card">
       {/* Step Indicator */}
-      <div className="flex items-center justify-center gap-4 mb-8">
+      <div className="flex items-center justify-center gap-4 mb-10">
         {[1, 2, 3, 4].map((s) => (
           <React.Fragment key={s}>
             <div className={cn(
               'w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300',
               s === step ? 'bg-terra text-white shadow-lg scale-110' : 
-              s < step ? 'bg-success text-white' : 'bg-white border border-outline-variant text-muted'
+              s < step ? 'bg-success text-white' : 'bg-sand text-muted'
             )}>
               {s < step ? <Check size={14} /> : s}
             </div>
@@ -88,26 +100,45 @@ export function PropertyForm({ initialData, onSubmit, isSubmitting }: PropertyFo
       <AnimatePresence mode="wait">
         {step === 1 && (
             <motion.div key="step1" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-6">
-              <Input label="Property Title" placeholder="e.g. Modern 3-Bed Apartment" value={form.title} onChange={(val) => setForm({...form, title: val})} />
-              <Input label="Full Address" placeholder="No. 12 Street Name, Area" value={form.address} onChange={(val) => setForm({...form, address: val})} />
+              <h2 className="font-playfair text-xl font-bold text-charcoal">Basic Information</h2>
+              <Input label="Property Title" placeholder="e.g. Modern 3-Bed Apartment" value={form.title} onChangeValue={(val) => setForm({...form, title: val})} className="bg-sand/30" />
+              <div>
+                <label className="block font-mono text-[11px] uppercase tracking-widest text-muted mb-3">Property Type</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {propertyTypes.map(type => (
+                    <button
+                      key={type}
+                      onClick={() => setForm({...form, type})}
+                      className={cn(
+                        'h-10 rounded-chip border text-xs font-bold transition-all',
+                        form.type === type ? 'bg-terra text-white border-terra' : 'bg-sand/30 text-muted border-outline-variant hover:bg-sand/50'
+                      )}
+                    >
+                      {type}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <Input label="Full Address" placeholder="No. 12 Street Name, Area" value={form.address} onChangeValue={(val) => setForm({...form, address: val})} className="bg-sand/30" />
               <Button variant="primary" size="lg" fullWidth onClick={nextStep}>Next Step</Button>
             </motion.div>
         )}
         {step === 2 && (
             <motion.div key="step2" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-6">
-              <Input label="Yearly Price" prefix="₦" value={form.priceYearlyKobo.toString()} onChange={(val) => setForm({...form, priceYearlyKobo: parseInt(val)})} />
+              <h2 className="font-playfair text-xl font-bold text-charcoal">Pricing Details</h2>
+              <Input label="Yearly Price" prefix="₦" placeholder="4,500,000" value={(form.priceYearlyKobo ?? 0).toString()} onChangeValue={(val) => setForm({...form, priceYearlyKobo: parseInt(val) || 0})} className="bg-sand/30" />
               <Button variant="primary" size="lg" fullWidth onClick={nextStep}>Next Step</Button>
             </motion.div>
         )}
         {step === 3 && (
             <motion.div key="step3" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-6">
-               <h2 className="font-playfair text-xl font-bold">Amenities</h2>
+               <h2 className="font-playfair text-xl font-bold text-charcoal">Amenities & Photos</h2>
                <Button variant="primary" size="lg" fullWidth onClick={nextStep}>Review</Button>
             </motion.div>
         )}
         {step === 4 && (
             <motion.div key="step4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-6">
-                <h2 className="font-playfair text-xl font-bold">Review & Publish</h2>
+                <h2 className="font-playfair text-xl font-bold text-charcoal">Review & Publish</h2>
                 <Button variant="primary" size="lg" fullWidth loading={isSubmitting} onClick={() => onSubmit(form)}>Submit Listing</Button>
             </motion.div>
         )}
