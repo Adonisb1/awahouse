@@ -5,6 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { PropertyForm } from '@/components/property/PropertyForm';
 import { TopNav } from '@/components/layout/TopNav';
 import { trpc } from '@/lib/trpc/react';
+import { fileToUploadInput } from '@/lib/utils/fileToBase64';
 
 const VALID_TYPES = ['apartment', 'duplex', 'bungalow', 'studio', 'commercial'] as const;
 
@@ -12,34 +13,48 @@ export default function EditListingPage() {
   const router = useRouter();
   const params = useParams();
   const propertyId = params.id as string;
-  
+
   const [error, setError] = React.useState('');
+  const [uploading, setUploading] = React.useState(false);
+  const utils = trpc.useUtils();
   const { data: property, isLoading } = trpc.properties.getById.useQuery({ id: propertyId });
   const updateMutation = trpc.properties.update.useMutation();
+  const uploadMutation = trpc.properties.uploadImages.useMutation();
 
   const handleSubmit = async (data: any) => {
     try {
-        setError('');
-        const type = (data.type ?? '').toLowerCase();
-        if (!VALID_TYPES.includes(type as any)) {
-          setError(`Invalid property type: ${data.type}`);
-          return;
-        }
-        await updateMutation.mutateAsync({
-            id: propertyId,
-            title: data.title,
-            description: data.description || undefined,
-            address: data.address || undefined,
-            lga: data.lga || undefined,
-            type: type as typeof VALID_TYPES[number],
-            bedrooms: data.bedrooms,
-            bathrooms: data.bathrooms,
-            priceKobo: BigInt(data.priceYearlyKobo || 0),
-            isAvailable: data.isAvailable ?? true,
-        });
-        router.push('/landlord');
+      setError('');
+      const type = (data.type ?? '').toLowerCase();
+      if (!VALID_TYPES.includes(type as any)) {
+        setError(`Invalid property type: ${data.type}`);
+        return;
+      }
+      await updateMutation.mutateAsync({
+        id: propertyId,
+        title: data.title,
+        description: data.description || undefined,
+        address: data.address || undefined,
+        lga: data.lga || undefined,
+        type: type as typeof VALID_TYPES[number],
+        bedrooms: data.bedrooms,
+        bathrooms: data.bathrooms,
+        priceKobo: BigInt(data.priceYearlyKobo || 0),
+        isAvailable: data.isAvailable ?? true,
+      });
+
+      const files: File[] = data.selectedFiles ?? [];
+      if (files.length > 0) {
+        setUploading(true);
+        const images = await Promise.all(files.map(fileToUploadInput));
+        await uploadMutation.mutateAsync({ propertyId, images });
+      }
+
+      utils.properties.listMyProperties.invalidate();
+      router.push('/landlord');
     } catch (e: any) {
-        setError(e?.message ?? 'Failed to update listing');
+      setError(e?.message ?? 'Failed to update listing');
+    } finally {
+      setUploading(false);
     }
   }
 
@@ -55,11 +70,11 @@ export default function EditListingPage() {
           </div>
         )}
         {property && (
-            <PropertyForm 
-                initialData={property} 
-                onSubmit={handleSubmit} 
-                isSubmitting={updateMutation.isPending} 
-            />
+          <PropertyForm
+            initialData={property}
+            onSubmit={handleSubmit}
+            isSubmitting={updateMutation.isPending || uploading}
+          />
         )}
       </div>
     </div>
