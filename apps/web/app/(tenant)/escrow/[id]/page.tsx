@@ -1,33 +1,55 @@
 'use client';
 
 import * as React from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Bell, User as UserIcon, ShieldCheck, CheckCircle2, Info, Key } from 'lucide-react';
+import { ShieldCheck, CheckCircle2, Info, Key, User as UserIcon } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import { TopNav } from '@/components/layout/TopNav';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { KoboDisplay } from '@/components/ui/KoboDisplay';
+import { EscrowStatusChip } from '@/components/escrow/EscrowStatusChip';
 import { Button } from '@/components/ui/Button';
-import { mockEscrowTransactions } from '@/lib/mock';
+import { trpc } from '@/lib/trpc/react';
+import { NotificationBell } from '@/components/layout/NotificationBell';
 
 export default function EscrowDashboardPage() {
+  const router = useRouter();
   const params = useParams();
   const escrowId = params.id as string;
-  const transaction = (mockEscrowTransactions.find(t => t.id === escrowId) || mockEscrowTransactions[0])!;
+  
+  const utils = trpc.useUtils();
+  const { data: transaction, isLoading } = trpc.escrow.getById.useQuery({ escrowId });
+  const confirmMutation = trpc.escrow.confirmHandover.useMutation({
+      onSuccess: () => utils.escrow.getById.invalidate({ escrowId }),
+  });
+  const disputeMutation = trpc.escrow.raiseDispute.useMutation({
+      onSuccess: () => utils.escrow.getById.invalidate({ escrowId }),
+  });
   
   const [showConfirmModal, setShowConfirmModal] = React.useState(false);
+  const [showDisputeModal, setShowDisputeModal] = React.useState(false);
   const [confirmStep, setConfirmStep] = React.useState(1);
-  const [isCompleted, setIsCompleted] = React.useState(transaction.status === 'COMPLETED');
 
-  const handleConfirmHandover = () => {
+  const handleConfirmHandover = async () => {
     if (confirmStep === 1) {
       setConfirmStep(2);
     } else {
+      await confirmMutation.mutateAsync({ escrowId });
       setShowConfirmModal(false);
-      setIsCompleted(true);
+      setConfirmStep(1);
     }
   };
+
+  const handleRaiseDispute = async () => {
+      await disputeMutation.mutateAsync({ escrowId, reason: 'Dispute raised by tenant' });
+      setShowDisputeModal(false);
+  };
+
+  if (isLoading) return <div className="min-h-screen bg-sand flex items-center justify-center">Loading...</div>;
+  if (!transaction) return <div className="min-h-screen bg-sand flex items-center justify-center">Transaction not found.</div>;
+
+  const isCompleted = transaction.status === 'COMPLETED';
 
   return (
     <div className="flex flex-col min-h-screen bg-sand pb-[80px]">
@@ -35,9 +57,7 @@ export default function EscrowDashboardPage() {
         variant="brand"
         actions={
           <div className="flex gap-2">
-            <button className="w-10 h-10 rounded-full bg-white border border-outline-variant flex items-center justify-center text-muted">
-              <Bell size={20} />
-            </button>
+            <NotificationBell />
             <button className="w-10 h-10 rounded-full bg-white border border-outline-variant flex items-center justify-center text-muted">
               <UserIcon size={20} />
             </button>
@@ -45,15 +65,13 @@ export default function EscrowDashboardPage() {
         }
       />
 
-      <div className="flex-1 overflow-y-auto px-4 py-6">
+      <div className="flex-1 overflow-y-auto px-4 py-6 max-w-5xl mx-auto w-full">
         <div className="flex justify-between items-center mb-6">
           <div>
             <h1 className="font-playfair text-2xl font-bold text-charcoal">Escrow Protection</h1>
             <p className="text-[13px] text-muted">Your deposit is safe and secured.</p>
           </div>
-          <div className="bg-success-bg text-success text-[10px] font-mono px-2 py-1 rounded-badge border border-success/20 font-bold uppercase tracking-wider">
-            ✓ PROT
-          </div>
+          <EscrowStatusChip status={transaction.status as any} />
         </div>
 
         {/* Transaction Card */}
@@ -68,7 +86,7 @@ export default function EscrowDashboardPage() {
               </h3>
             </div>
             <div className="text-right">
-              <KoboDisplay kobo={transaction.amountKobo} size="lg" color="terra" />
+              <KoboDisplay kobo={Number(transaction.amountKobo)} size="lg" color="terra" />
               <span className="font-mono text-[10px] uppercase text-muted tracking-widest block mt-1">TOTAL SEC</span>
             </div>
           </div>
@@ -77,28 +95,6 @@ export default function EscrowDashboardPage() {
           <div className="space-y-8 relative">
             <div className="absolute left-[11px] top-2 bottom-2 w-0.5 bg-outline-variant/30" />
             
-            {/* Step 1 */}
-            <div className="relative flex gap-4">
-              <div className="w-6 h-6 rounded-full bg-success flex items-center justify-center text-white z-10 shrink-0">
-                <CheckCircle2 size={14} />
-              </div>
-              <div>
-                <h4 className="text-sm font-bold text-charcoal">Deposit Paid</h4>
-                <p className="text-xs text-muted">Funds received and held in secure escrow.</p>
-              </div>
-            </div>
-
-            {/* Step 2 */}
-            <div className="relative flex gap-4">
-              <div className="w-6 h-6 rounded-full bg-success flex items-center justify-center text-white z-10 shrink-0">
-                <CheckCircle2 size={14} />
-              </div>
-              <div>
-                <h4 className="text-sm font-bold text-charcoal">Title Check Complete</h4>
-                <p className="text-xs text-muted">Property documents verified by legal team.</p>
-              </div>
-            </div>
-
             {/* Step 3 */}
             <div className="relative flex gap-4">
               {isCompleted ? (
@@ -116,64 +112,31 @@ export default function EscrowDashboardPage() {
                   {isCompleted ? 'Key Handover Confirmed' : 'Key Handover Pending'}
                 </h4>
                 <p className="text-xs text-muted">Scheduled for {transaction.handoverDate}.</p>
-                {!isCompleted && (
-                  <Button
-                    variant="primary"
-                    size="sm"
-                    className="mt-3 h-9 px-4 bg-terra-dark border-none shadow-none text-xs"
-                    onClick={() => setShowConfirmModal(true)}
-                  >
-                    Confirm Receipt
-                  </Button>
+                {!isCompleted && transaction.status === 'KEY_HANDOVER_PENDING' && (
+                  <div className="flex gap-3">
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      className="mt-3 h-9 px-4 bg-terra-dark border-none shadow-none text-xs"
+                      onClick={() => setShowConfirmModal(true)}
+                      loading={confirmMutation.isPending}
+                    >
+                      Confirm Receipt
+                    </Button>
+                    <Button
+                      variant="danger"
+                      size="sm"
+                      className="mt-3 h-9 px-4 text-xs"
+                      onClick={() => setShowDisputeModal(true)}
+                      loading={disputeMutation.isPending}
+                    >
+                      Raise Dispute
+                    </Button>
+                  </div>
                 )}
               </div>
             </div>
-
-            {/* Step 4 */}
-            <div className="relative flex gap-4">
-              <div className={cn(
-                'w-6 h-6 rounded-full border-2 z-10 shrink-0 flex items-center justify-center',
-                isCompleted ? 'bg-success border-success text-white' : 'bg-white border-outline-variant text-muted'
-              )}>
-                {isCompleted ? <CheckCircle2 size={14} /> : <div className="w-1.5 h-1.5 bg-outline-variant/30 rounded-full" />}
-              </div>
-              <div>
-                <h4 className={cn('text-sm font-bold', isCompleted ? 'text-charcoal' : 'text-muted')}>
-                  Funds Released
-                </h4>
-                <p className="text-xs text-muted">
-                  {isCompleted ? 'Funds transferred to landlord payout account.' : 'Awaiting handover confirmation.'}
-                </p>
-              </div>
-            </div>
           </div>
-        </div>
-
-        {/* Guarantee Card */}
-        <div className="bg-sand-warm border border-outline-variant rounded-card p-5 flex items-center gap-5 mb-6">
-          <div className="w-14 h-14 bg-white rounded-full flex items-center justify-center text-terra-dark shadow-sm shrink-0">
-            <ShieldCheck size={28} />
-          </div>
-          <div>
-            <h4 className="font-bold text-charcoal text-[15px]">Awahouse Guarantee</h4>
-            <p className="text-xs text-muted leading-relaxed">
-              We act as a neutral third party, ensuring your funds are protected until keys are in your hand.
-            </p>
-          </div>
-        </div>
-
-        {/* How it works */}
-        <div className="bg-success-bg border border-success/20 rounded-card p-5">
-          <div className="flex items-center gap-2 mb-3 text-success">
-            <Info size={18} />
-            <h4 className="font-bold text-sm">How it works</h4>
-          </div>
-          <ul className="space-y-2 text-xs text-success/80 leading-relaxed list-decimal pl-4">
-            <li>Tenant deposits annual rent into secure escrow.</li>
-            <li>Awahouse legal team verifies property title and agent authority.</li>
-            <li>Keys are handed over at the property.</li>
-            <li>Tenant confirms receipt; funds are released to landlord.</li>
-          </ul>
         </div>
       </div>
 
@@ -188,7 +151,7 @@ export default function EscrowDashboardPage() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setShowConfirmModal(false)}
-              className="fixed inset-0 bg-charcoal/40 backdrop-blur-sm z-[100] max-w-[430px] mx-auto"
+              className="fixed inset-0 bg-charcoal/40 backdrop-blur-sm z-[100]"
             />
             <motion.div
               initial={{ scale: 0.9, opacity: 0 }}
@@ -220,6 +183,34 @@ export default function EscrowDashboardPage() {
               </div>
             </motion.div>
           </>
+        )}
+      </AnimatePresence>
+
+      {/* Dispute Modal */}
+      <AnimatePresence>
+        {showDisputeModal && (
+           <>
+             <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowDisputeModal(false)}
+              className="fixed inset-0 bg-charcoal/40 backdrop-blur-sm z-[100]"
+            />
+             <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[101] w-[90%] max-w-[340px] bg-white rounded-[24px] p-6 shadow-2xl"
+            >
+              <h3 className="font-bold text-lg mb-4 text-center">Raise a Dispute?</h3>
+              <p className="text-sm text-muted mb-6 text-center">Are you sure you want to raise a dispute? This will freeze funds while we investigate.</p>
+              <div className="flex flex-col gap-3">
+                  <Button variant="danger" fullWidth onClick={handleRaiseDispute}>Confirm Dispute</Button>
+                  <Button variant="ghost" fullWidth onClick={() => setShowDisputeModal(false)}>Cancel</Button>
+              </div>
+            </motion.div>
+           </>
         )}
       </AnimatePresence>
     </div>

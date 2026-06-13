@@ -3,6 +3,7 @@ import { z } from 'zod';
 export const sendOtpInput = z.object({
   email: z.string().email('Please enter a valid email address'),
   role: z.enum(['tenant', 'landlord', 'agent']),
+  intent: z.enum(['signup', 'login']).optional().default('signup'),
 });
 
 export const verifyOtpInput = z.object({

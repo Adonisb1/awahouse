@@ -34,7 +34,7 @@ export default function AuthPage() {
     try {
       await sendOtpMutation.mutateAsync({
         email: form.email,
-        role: (pendingRole ?? 'tenant') as 'tenant' | 'landlord' | 'agent',
+        role: pendingRole ?? 'tenant',
       });
       setStage('otp');
     } catch (error) {
@@ -50,7 +50,7 @@ export default function AuthPage() {
         code: otpCode,
         firstName: names[0] || '',
         lastName: names.slice(1).join(' ') || '',
-        role: (pendingRole ?? 'tenant') as 'tenant' | 'landlord' | 'agent',
+        role: pendingRole ?? 'tenant',
       });
 
       if (result.success && result.userId) {
@@ -60,7 +60,12 @@ export default function AuthPage() {
           activeRole: result.activeRole as any,
           sessionToken: result.sessionToken,
         });
-        router.push('/onboarding/verify-nin');
+        
+        if (result.activeRole === 'admin') {
+          router.push('/dashboard');
+        } else {
+          router.push('/onboarding/verify-nin');
+        }
       }
     } catch (error) {
       console.error('Failed to verify OTP:', error);
@@ -71,7 +76,7 @@ export default function AuthPage() {
     try {
       const result = await googleSignInMutation.mutateAsync({
         idToken: 'stub-google-token',
-        role: (pendingRole ?? 'tenant') as 'tenant' | 'landlord' | 'agent',
+        role: pendingRole ?? 'tenant',
       });
 
       if (result.success) {
@@ -149,7 +154,7 @@ export default function AuthPage() {
                       label="Full Name"
                       placeholder="Enter your legal name"
                       value={form.fullName}
-                      onChange={(e) => setForm({ ...form, fullName: e.target.value })}
+                      onChange={(val) => setForm({ ...form, fullName: val })}
                     />
                   )}
 
@@ -159,14 +164,14 @@ export default function AuthPage() {
                         Phone Number
                       </label>
                       <div className="flex gap-2">
-                        <div className="h-[52px] px-4 rounded-input border border-outline-variant bg-white flex items-center justify-center font-sans font-bold text-charcoal text-sm">
+                        <div className="h-[52px] px-4 rounded-input border border-outline-variant bg-sand/30 flex items-center justify-center font-sans font-bold text-charcoal text-sm">
                           +234
                         </div>
                         <Input
                           placeholder="803 000 0000"
                           value={form.phone}
-                          onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                          className="flex-1"
+                          onChange={(val) => setForm({ ...form, phone: val })}
+                          className="flex-1 bg-sand/30"
                         />
                       </div>
                     </div>
@@ -177,7 +182,8 @@ export default function AuthPage() {
                     type="email"
                     placeholder="name@example.com"
                     value={form.email}
-                    onChange={(e) => setForm({ ...form, email: e.target.value })}
+                    onChange={(val) => setForm({ ...form, email: val })}
+                    className="bg-sand/30"
                   />
 
                   {activeTab === 'signup' && (
@@ -259,9 +265,10 @@ export default function AuthPage() {
                     placeholder="000000"
                     maxLength={6}
                     value={otpCode}
-                    onChange={(e) => setOtpCode(e.target.value)}
-                    className="text-center text-2xl tracking-[0.5em] font-mono h-[64px]"
+                    onChange={setOtpCode}
+                    className="text-center text-2xl tracking-[0.5em] font-mono h-[64px] bg-sand/30"
                   />
+
                   <Button
                     variant="primary"
                     size="lg"

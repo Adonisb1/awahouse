@@ -1,4 +1,5 @@
 import { TRPCError } from '@trpc/server';
+import { z } from 'zod';
 import { router, publicProcedure, authedProcedure } from '../trpc';
 import { sendOtpInput, verifyOtpInput, signInWithGoogleInput, switchRoleInput } from '../schemas/auth';
 import { createServerSupabaseClient } from '@/lib/auth/supabase';
@@ -10,6 +11,22 @@ export const authRouter = router({
   sendOtp: publicProcedure
     .input(sendOtpInput)
     .mutation(async ({ input }) => {
+      const existingUser = await prisma.user.findUnique({ where: { email: input.email } });
+
+      if (input.intent === 'signup' && existingUser) {
+        throw new TRPCError({
+          code: 'CONFLICT',
+          message: 'An account with this email already exists. Please log in instead.',
+        });
+      }
+
+      if (input.intent === 'login' && !existingUser) {
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: 'No account found with this email. Please sign up instead.',
+        });
+      }
+
       if (!canRequestOtp(input.email)) {
         throw new TRPCError({
           code: 'TOO_MANY_REQUESTS',
@@ -23,16 +40,14 @@ export const authRouter = router({
       console.log(`  🔑 OTP for ${input.email}: ${code}`);
       console.log('═══════════════════════════════════════');
 
-      if (process.env.NODE_ENV !== 'development') {
-        const supabase = createServerSupabaseClient();
-        if (supabase) {
-          const { error } = await supabase.auth.signInWithOtp({
-            email: input.email,
-            options: { data: { role: input.role } },
-          });
-          if (error) {
-            console.error('Supabase OTP error:', error.message);
-          }
+      const supabase = createServerSupabaseClient();
+      if (supabase) {
+        const { error } = await supabase.auth.signInWithOtp({
+          email: input.email,
+          options: { data: { role: input.role } },
+        });
+        if (error) {
+          console.error('Supabase OTP error:', error.message);
         }
       }
 
@@ -53,8 +68,8 @@ export const authRouter = router({
         });
         if (!error && data.user) {
           supabaseUserId = data.user.id;
-        } else {
-          console.warn('Supabase OTP verification failed, falling back to local:', error?.message);
+        } else if (error) {
+          console.warn('Supabase OTP fallback to local:', error.message);
         }
       }
 
