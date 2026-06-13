@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { prisma } from '@awahouse/db';
+import { notifyPaymentReceived, notifyRefunded } from '@/server/services/PaymentNotifications';
 import type { EscrowStatus } from '@awahouse/db';
 
 function validateSignature(body: string, signature: string): boolean {
@@ -58,6 +59,7 @@ export async function POST(request: NextRequest) {
         data: { status: 'funds_held' },
       });
       await logTransition(existing.id, 'pending_payment', 'funds_held', existing.tenantId, 'Paystack charge.success webhook');
+      await notifyPaymentReceived(existing.id);
       break;
     }
 
@@ -80,6 +82,7 @@ export async function POST(request: NextRequest) {
         data: { status: 'refunded' },
       });
       await logTransition(existing.id, status, 'refunded', 'system', 'Paystack refund.processed webhook');
+      await notifyRefunded(existing.id);
       break;
     }
 

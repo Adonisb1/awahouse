@@ -12,6 +12,7 @@ import {
 import { escrowService } from '../services/EscrowService';
 import { rentScoreService } from '../services/RentScoreService';
 import { notificationService } from '../services/NotificationService';
+import { notifyHandoverConfirmed, notifyDisputeRaised } from '../services/PaymentNotifications';
 
 export const escrowRouter = router({
   initiate: tenantProcedure.input(initiateEscrowInput).mutation(async ({ ctx, input }) => {
@@ -43,6 +44,8 @@ export const escrowRouter = router({
 
     await rentScoreService.recordEvent(ctx.userId!, 'escrow_completed', input.escrowId);
 
+    await notifyHandoverConfirmed(input.escrowId);
+
     if (escrow.rentMonthly) {
       await rentScoreService.scheduleInstalments(input.escrowId, new Date(), escrow.amountKobo);
       await notificationService.sendInApp(
@@ -62,14 +65,9 @@ export const escrowRouter = router({
   }),
 
   raiseDispute: tenantProcedure.input(raiseDisputeInput).mutation(async ({ ctx, input }) => {
-    const escrow = await escrowService.raiseDispute(input.escrowId, ctx.userId!, input.reason);
+    await escrowService.raiseDispute(input.escrowId, ctx.userId!, input.reason);
     await rentScoreService.recordEvent(ctx.userId!, 'dispute_raised', input.escrowId);
-    await notificationService.sendInApp(
-      escrow.landlordId,
-      'Dispute Raised',
-      'A dispute has been raised on your escrow. An admin will review it shortly.',
-      '/admin/dashboard',
-    );
+    await notifyDisputeRaised(input.escrowId, input.reason);
     return { success: true };
   }),
 
