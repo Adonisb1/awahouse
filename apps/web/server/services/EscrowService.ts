@@ -36,6 +36,7 @@ export class EscrowService {
     propertyId: string,
     amountKobo: bigint,
     rentMonthly: boolean,
+    callbackUrl?: string,
   ) {
     const property = await prisma.property.findUnique({ where: { id: propertyId } });
     if (!property || property.isDeleted) {
@@ -53,8 +54,6 @@ export class EscrowService {
     const { platformFeeKobo, landlordPayoutKobo } = calculateFees(amountKobo);
     const reference = `AWA-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
 
-    const charge = await paystackClient.initiateCharge(amountKobo, tenant.email, reference);
-
     const escrow = await prisma.escrowTransaction.create({
       data: {
         propertyId,
@@ -65,9 +64,21 @@ export class EscrowService {
         platformFeeKobo,
         landlordPayoutKobo,
         paystackReference: reference,
-        paystackAccessCode: charge.accessCode,
         rentMonthly,
       },
+    });
+
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
+    const charge = await paystackClient.initiateCharge(
+      amountKobo,
+      tenant.email,
+      reference,
+      callbackUrl ?? `${appUrl}/escrow/${escrow.id}`,
+    );
+
+    await prisma.escrowTransaction.update({
+      where: { id: escrow.id },
+      data: { paystackAccessCode: charge.accessCode },
     });
 
     return {

@@ -20,6 +20,7 @@ export const escrowRouter = router({
       input.propertyId,
       input.amountKobo,
       input.rentMonthly,
+      input.callbackUrl,
     );
     return {
       success: true,

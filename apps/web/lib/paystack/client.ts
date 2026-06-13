@@ -22,6 +22,7 @@ class PaystackClient {
     amountKobo: bigint,
     email: string,
     reference: string,
+    callbackUrl?: string,
   ): Promise<ChargeResponse> {
     if (!process.env.PAYSTACK_SECRET_KEY) {
       return {
@@ -42,6 +43,7 @@ class PaystackClient {
         amount: Number(amountKobo),
         email,
         reference,
+        callback_url: callbackUrl ?? `${process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'}/escrow`,
       }),
     });
 

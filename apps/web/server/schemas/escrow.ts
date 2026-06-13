@@ -15,6 +15,7 @@ export const initiateEscrowInput = z.object({
   propertyId: z.string().uuid('Invalid property ID'),
   amountKobo: z.bigint().positive('Amount must be positive'),
   rentMonthly: z.boolean().default(false),
+  callbackUrl: z.string().url().optional(),
 });
 
 export const escrowIdInput = z.object({
