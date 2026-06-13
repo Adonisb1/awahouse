@@ -18,13 +18,16 @@ export default function EscrowDashboardPage() {
   const params = useParams();
   const escrowId = params.id as string;
   
+  const [error, setError] = React.useState('');
   const utils = trpc.useUtils();
-  const { data: transaction, isLoading } = trpc.escrow.getById.useQuery({ escrowId });
+  const { data: transaction, isLoading } = trpc.escrow.getById.useQuery({ id: escrowId });
   const confirmMutation = trpc.escrow.confirmHandover.useMutation({
-      onSuccess: () => utils.escrow.getById.invalidate({ escrowId }),
+      onSuccess: () => utils.escrow.getById.invalidate({ id: escrowId }),
+      onError: (err) => setError(err.message),
   });
   const disputeMutation = trpc.escrow.raiseDispute.useMutation({
-      onSuccess: () => utils.escrow.getById.invalidate({ escrowId }),
+      onSuccess: () => utils.escrow.getById.invalidate({ id: escrowId }),
+      onError: (err) => setError(err.message),
   });
   
   const [showConfirmModal, setShowConfirmModal] = React.useState(false);
@@ -32,24 +35,28 @@ export default function EscrowDashboardPage() {
   const [confirmStep, setConfirmStep] = React.useState(1);
 
   const handleConfirmHandover = async () => {
-    if (confirmStep === 1) {
-      setConfirmStep(2);
-    } else {
-      await confirmMutation.mutateAsync({ escrowId });
-      setShowConfirmModal(false);
-      setConfirmStep(1);
-    }
+    try {
+      if (confirmStep === 1) {
+        setConfirmStep(2);
+      } else {
+        await confirmMutation.mutateAsync({ escrowId });
+        setShowConfirmModal(false);
+        setConfirmStep(1);
+      }
+    } catch {}
   };
 
   const handleRaiseDispute = async () => {
+    try {
       await disputeMutation.mutateAsync({ escrowId, reason: 'Dispute raised by tenant' });
       setShowDisputeModal(false);
+    } catch {}
   };
 
   if (isLoading) return <div className="min-h-screen bg-sand flex items-center justify-center">Loading...</div>;
   if (!transaction) return <div className="min-h-screen bg-sand flex items-center justify-center">Transaction not found.</div>;
 
-  const isCompleted = transaction.status === 'COMPLETED';
+  const isCompleted = transaction.status === 'completed';
 
   return (
     <div className="flex flex-col min-h-screen bg-sand pb-[80px]">
@@ -66,6 +73,12 @@ export default function EscrowDashboardPage() {
       />
 
       <div className="flex-1 overflow-y-auto px-4 py-6 max-w-5xl mx-auto w-full">
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl px-4 py-3 mb-6">
+            {error}
+          </div>
+        )}
+
         <div className="flex justify-between items-center mb-6">
           <div>
             <h1 className="font-playfair text-2xl font-bold text-charcoal">Escrow Protection</h1>
@@ -82,7 +95,7 @@ export default function EscrowDashboardPage() {
                 {isCompleted ? 'COMPLETED TRANSACTION' : 'ACTIVE TRANSACTION'}
               </span>
               <h3 className="text-base font-bold text-charcoal leading-tight">
-                {transaction.propertyTitle}
+                {transaction.property.title}
               </h3>
             </div>
             <div className="text-right">
@@ -111,8 +124,7 @@ export default function EscrowDashboardPage() {
                 <h4 className={cn('text-sm font-bold', isCompleted ? 'text-charcoal' : 'text-terra-dark')}>
                   {isCompleted ? 'Key Handover Confirmed' : 'Key Handover Pending'}
                 </h4>
-                <p className="text-xs text-muted">Scheduled for {transaction.handoverDate}.</p>
-                {!isCompleted && transaction.status === 'KEY_HANDOVER_PENDING' && (
+                {!isCompleted && transaction.status === 'key_handover_pending' && (
                   <div className="flex gap-3">
                     <Button
                       variant="primary"

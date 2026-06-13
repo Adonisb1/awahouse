@@ -83,7 +83,7 @@ function LoginForm() {
                   type="email"
                   placeholder="you@example.com"
                   value={email}
-                   onChange={(e) => setEmail(e.target.value)}
+                   onChangeValue={setEmail}
                   error={error}
                 />
                 <Button onClick={handleSendOtp} disabled={loading} className="w-full">
@@ -100,7 +100,7 @@ function LoginForm() {
                   placeholder="000000"
                   maxLength={6}
                   value={otp}
-                   onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
+                     onChangeValue={(val) => setOtp(val.replace(/\D/g, ''))}
                   error={error}
                 />
                 <Button onClick={handleVerifyOtp} disabled={loading} className="w-full">

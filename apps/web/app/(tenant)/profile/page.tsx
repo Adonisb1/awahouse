@@ -23,6 +23,7 @@ import { trpc } from '@/lib/trpc/react';
 
 export default function ProfilePage() {
   const router = useRouter();
+  const [error, setError] = React.useState('');
   const { userId, roles, activeRole, setAuth, setActiveRole, clearAuth } = useAuthStore();
 
   const { data: verifData, isLoading: verifLoading } = trpc.verification.checkStatus.useQuery();
@@ -41,8 +42,8 @@ export default function ProfilePage() {
       await switchRoleMutation.mutateAsync({ role: role as any });
       setActiveRole(role);
       router.push('/dashboard');
-    } catch (error) {
-      console.error('Failed to switch role:', error);
+    } catch (err: any) {
+      setError(err?.message ?? 'Failed to switch role');
     }
   };
 
@@ -77,6 +78,12 @@ export default function ProfilePage() {
              {roles.includes('agent') && <VerifiedBadge type="agent_verified" body="LASRERA" size="sm" />}
           </div>
         </section>
+
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl px-4 py-3 mb-6">
+            {error}
+          </div>
+        )}
 
         {/* Workspace Switcher */}
         <section className="mb-10">

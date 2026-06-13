@@ -2,56 +2,56 @@ import * as React from 'react';
 import { cn } from '@/lib/utils/cn';
 
 export type EscrowStatus =
-  | 'PENDING_PAYMENT'
-  | 'FUNDS_HELD'
-  | 'DOCS_VERIFIED'
-  | 'KEY_HANDOVER_PENDING'
-  | 'DISPUTED'
-  | 'COMPLETED'
-  | 'REFUNDED'
-  | 'CANCELLED';
+  | 'pending_payment'
+  | 'funds_held'
+  | 'docs_verified'
+  | 'key_handover_pending'
+  | 'disputed'
+  | 'completed'
+  | 'refunded'
+  | 'cancelled';
 
 interface EscrowStatusChipProps {
   status: EscrowStatus;
   className?: string;
 }
 
-const EscrowStatusChip: React.FC<EscrowStatusChipProps> = ({ status, className }) => {
-  const config: Record<EscrowStatus, { label: string; styles: string }> = {
-    PENDING_PAYMENT: {
-      label: 'Awaiting Payment',
-      styles: 'bg-gray-100 text-gray-600',
-    },
-    FUNDS_HELD: {
-      label: 'Funds Secured',
-      styles: 'bg-blue-50 text-blue-700',
-    },
-    DOCS_VERIFIED: {
-      label: 'Docs Verified',
-      styles: 'bg-terra-50 text-terra-dark',
-    },
-    KEY_HANDOVER_PENDING: {
-      label: 'Handover Pending',
-      styles: 'bg-amber-50 text-amber-700',
-    },
-    DISPUTED: {
-      label: 'Disputed',
-      styles: 'bg-red-50 text-red-700',
-    },
-    COMPLETED: {
-      label: 'Completed',
-      styles: 'bg-success-bg text-success',
-    },
-    REFUNDED: {
-      label: 'Refunded',
-      styles: 'bg-gray-100 text-gray-600',
-    },
-    CANCELLED: {
-      label: 'Cancelled',
-      styles: 'bg-gray-100 text-gray-400',
-    },
-  };
+const config: Record<EscrowStatus, { label: string; styles: string }> = {
+  pending_payment: {
+    label: 'Awaiting Payment',
+    styles: 'bg-gray-100 text-gray-600',
+  },
+  funds_held: {
+    label: 'Funds Secured',
+    styles: 'bg-blue-50 text-blue-700',
+  },
+  docs_verified: {
+    label: 'Docs Verified',
+    styles: 'bg-terra-50 text-terra-dark',
+  },
+  key_handover_pending: {
+    label: 'Handover Pending',
+    styles: 'bg-amber-50 text-amber-700',
+  },
+  disputed: {
+    label: 'Disputed',
+    styles: 'bg-red-50 text-red-700',
+  },
+  completed: {
+    label: 'Completed',
+    styles: 'bg-success-bg text-success',
+  },
+  refunded: {
+    label: 'Refunded',
+    styles: 'bg-gray-100 text-gray-600',
+  },
+  cancelled: {
+    label: 'Cancelled',
+    styles: 'bg-gray-100 text-gray-400',
+  },
+};
 
+const EscrowStatusChip: React.FC<EscrowStatusChipProps> = ({ status, className }) => {
   const { label, styles } = config[status];
 
   return (

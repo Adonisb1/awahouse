@@ -13,10 +13,12 @@ export function InstalmentSummary({ escrowId }: InstalmentSummaryProps) {
   const { data: schedule, isLoading } = trpc.rentInstalments.getSchedule.useQuery({ escrowId });
 
   if (isLoading) return <div className="p-4 bg-white rounded-card animate-pulse h-32" />;
-  if (!schedule || schedule.length === 0) return null;
 
-  const paidCount = schedule.filter(s => s.status === 'PAID').length;
-  const totalCount = schedule.length;
+  const items = schedule?.items ?? [];
+  if (items.length === 0) return null;
+
+  const paidCount = items.filter(s => s.status === 'paid').length;
+  const totalCount = items.length;
 
   return (
     <div className="bg-white border border-outline-variant rounded-card p-5 shadow-sm">
@@ -33,10 +35,10 @@ export function InstalmentSummary({ escrowId }: InstalmentSummaryProps) {
       </div>
 
       <div className="space-y-2">
-        {schedule.slice(0, 3).map((item) => (
+        {items.slice(0, 3).map((item) => (
           <div key={item.id} className="flex justify-between items-center text-xs">
             <span className="font-mono text-muted uppercase">{new Date(item.dueDate).toLocaleDateString()}</span>
-            <span className={cn("font-bold", item.status === 'PAID' ? 'text-success' : 'text-amber-600')}>{item.status}</span>
+            <span className={cn("font-bold", item.status === 'paid' ? 'text-success' : 'text-amber-600')}>{item.status}</span>
             <KoboDisplay kobo={Number(item.amountKobo)} size="sm" color="charcoal" />
           </div>
         ))}

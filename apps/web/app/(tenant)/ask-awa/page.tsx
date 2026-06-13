@@ -86,7 +86,7 @@ export default function AskAwaPage() {
         <div className="flex-1">
           <Input
             value={input}
-            onChange={(e) => setInput(e.target.value)}
+            onChangeValue={setInput}
             onKeyDown={handleKeyDown}
             placeholder="Ask Awa anything about Awahouse..."
             disabled={loading}

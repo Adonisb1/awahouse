@@ -64,7 +64,7 @@ export default function VerifyNinPage() {
                 placeholder="12345678901"
                 maxLength={11}
                 value={nin}
-onChange={(e) => setNin(e.target.value.replace(/\D/g, ''))}
+              onChangeValue={(val) => setNin(val.replace(/\D/g, ''))}
                 error={error}
               />
               <Button
@@ -108,7 +108,7 @@ onChange={(e) => setNin(e.target.value.replace(/\D/g, ''))}
               placeholder="12345678901"
               maxLength={11}
               value={nin}
-              onChange={(e) => setNin(e.target.value.replace(/\D/g, ''))}
+onChangeValue={(val) => setNin(val.replace(/\D/g, ''))}
               error={error}
             />
             <Button

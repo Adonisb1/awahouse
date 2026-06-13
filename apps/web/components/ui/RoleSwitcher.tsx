@@ -25,6 +25,7 @@ export function RoleSwitcher() {
   const activeRole = useAuthStore((s) => s.activeRole);
   const setActiveRole = useAuthStore((s) => s.setActiveRole);
   const [open, setOpen] = useState(false);
+  const [error, setError] = useState('');
 
   const switchRoleMutation = trpc.auth.switchRole.useMutation();
 
@@ -40,15 +41,22 @@ export function RoleSwitcher() {
       setActiveRole(role as 'tenant' | 'landlord' | 'agent' | 'admin');
       setOpen(false);
       router.push(rolePaths[role] ?? '/');
-    } catch {
+    } catch (err: any) {
+      setError(err?.message ?? 'Failed to switch role');
+      setTimeout(() => setError(''), 4000);
       setOpen(false);
     }
   }
 
   return (
     <div className="relative">
+      {error && (
+        <div className="absolute top-full left-0 right-0 mt-1 bg-red-50 border border-red-200 text-red-700 text-xs rounded-lg px-3 py-2 z-30">
+          {error}
+        </div>
+      )}
       <button
-        onClick={() => setOpen(!open)}
+        onClick={() => { setOpen(!open); setError(''); }}
         className="flex items-center gap-2 rounded-lg bg-surface-sand px-3 py-2 font-body text-sm font-medium text-charcoal transition-colors hover:bg-surface-warm"
         aria-label="Switch role"
       >

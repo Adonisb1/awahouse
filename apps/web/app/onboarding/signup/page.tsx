@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Eye, EyeOff, ShieldCheck } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
+import type { Role } from '@awahouse/types';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { trpc } from '@/lib/trpc/react';
@@ -18,6 +19,7 @@ export default function AuthPage() {
   const [activeTab, setActiveTab] = React.useState<'signup' | 'login'>('signup');
   const [showPassword, setShowPassword] = React.useState(false);
   const [stage, setStage] = React.useState<'details' | 'otp'>('details');
+  const [error, setError] = React.useState('');
   const [otpCode, setOtpCode] = React.useState('');
   const [form, setForm] = React.useState({
     fullName: '',
@@ -32,25 +34,27 @@ export default function AuthPage() {
 
   const handleSendOtp = async () => {
     try {
+      setError('');
       await sendOtpMutation.mutateAsync({
         email: form.email,
-        role: pendingRole ?? 'tenant',
+        role: pendingRole as 'tenant' | 'landlord' | 'agent' ?? 'tenant',
+        intent: activeTab === 'signup' ? 'signup' : 'login',
       });
       setStage('otp');
-    } catch (error) {
-      console.error('Failed to send OTP:', error);
+    } catch (err: any) {
+      setError(err?.message ?? 'Something went wrong');
     }
   };
 
   const handleVerifyOtp = async () => {
     try {
-      const names = form.fullName.split(' ');
+      const names = form.fullName.trim().split(/\s+/);
       const result = await verifyOtpMutation.mutateAsync({
         email: form.email,
         code: otpCode,
         firstName: names[0] || '',
         lastName: names.slice(1).join(' ') || '',
-        role: pendingRole ?? 'tenant',
+        role: pendingRole as 'tenant' | 'landlord' | 'agent' ?? 'tenant',
       });
 
       if (result.success && result.userId) {
@@ -67,8 +71,8 @@ export default function AuthPage() {
           router.push('/onboarding/verify-nin');
         }
       }
-    } catch (error) {
-      console.error('Failed to verify OTP:', error);
+    } catch (err: any) {
+      setError(err?.message ?? 'Failed to verify OTP');
     }
   };
 
@@ -76,19 +80,19 @@ export default function AuthPage() {
     try {
       const result = await googleSignInMutation.mutateAsync({
         idToken: 'stub-google-token',
-        role: pendingRole ?? 'tenant',
+        role: pendingRole as 'tenant' | 'landlord' | 'agent' ?? 'tenant',
       });
 
       if (result.success) {
         setAuth({
           userId: result.userId,
-          roles: result.roles as any,
-          activeRole: result.activeRole as any,
+          roles: result.roles as Role[],
+          activeRole: result.activeRole as Role,
         });
         router.push('/onboarding/verify-nin');
       }
-    } catch (error) {
-      console.error('Google sign-in failed:', error);
+    } catch (err: any) {
+      setError(err?.message ?? 'Google sign-in failed');
     }
   };
 
@@ -148,13 +152,19 @@ export default function AuthPage() {
                     : "Continue your journey to a verified home."}
                 </p>
 
+                {error && (
+                  <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl px-4 py-3 mb-6">
+                    {error}
+                  </div>
+                )}
+
                 <div className="space-y-6">
                   {activeTab === 'signup' && (
                     <Input
                       label="Full Name"
                       placeholder="Enter your legal name"
                       value={form.fullName}
-                      onChange={(val) => setForm({ ...form, fullName: val })}
+                      onChangeValue={(val) => setForm({ ...form, fullName: val })}
                     />
                   )}
 
@@ -170,7 +180,7 @@ export default function AuthPage() {
                         <Input
                           placeholder="803 000 0000"
                           value={form.phone}
-                          onChange={(val) => setForm({ ...form, phone: val })}
+                          onChangeValue={(val) => setForm({ ...form, phone: val })}
                           className="flex-1 bg-sand/30"
                         />
                       </div>
@@ -182,7 +192,7 @@ export default function AuthPage() {
                     type="email"
                     placeholder="name@example.com"
                     value={form.email}
-                    onChange={(val) => setForm({ ...form, email: val })}
+                    onChangeValue={(val) => setForm({ ...form, email: val })}
                     className="bg-sand/30"
                   />
 
@@ -259,13 +269,19 @@ export default function AuthPage() {
                   Check your inbox (and spam) to continue.
                 </p>
 
+                {error && (
+                  <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl px-4 py-3 mb-4">
+                    {error}
+                  </div>
+                )}
+
                 <div className="space-y-6">
                   <Input
                     label="Enter 6-digit code"
                     placeholder="000000"
                     maxLength={6}
                     value={otpCode}
-                    onChange={setOtpCode}
+                    onChangeValue={setOtpCode}
                     className="text-center text-2xl tracking-[0.5em] font-mono h-[64px] bg-sand/30"
                   />
 

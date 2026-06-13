@@ -27,6 +27,7 @@ export default function AgentVerificationPage() {
   const [expiryMonth, setExpiryMonth] = React.useState('');
   const [expiryYear, setExpiryYear] = React.useState('');
   const [file, setFile] = React.useState<File | null>(null);
+  const [error, setError] = React.useState('');
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const uploadMutation = trpc.verification.uploadDocument.useMutation();
@@ -54,6 +55,7 @@ export default function AgentVerificationPage() {
     if (!file || !selectedBody) return;
 
     try {
+      setError('');
       const base64 = await readFileAsBase64(file);
       await uploadMutation.mutateAsync({
         verificationType: selectedBody.toLowerCase() as VerificationType,
@@ -62,8 +64,8 @@ export default function AgentVerificationPage() {
         fileBase64: base64,
       });
       router.push('/agent/dashboard');
-    } catch (error) {
-      console.error('Upload failed:', error);
+    } catch (err: any) {
+      setError(err?.message ?? 'Upload failed');
     }
   };
 
@@ -83,6 +85,12 @@ export default function AgentVerificationPage() {
             Upload your membership certificate for manual review.
           </p>
         </motion.div>
+
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl px-4 py-3 mb-6">
+            {error}
+          </div>
+        )}
 
         {/* Info Box */}
         <div className="bg-blue-50 border border-blue-200 rounded-[14px] p-4 flex gap-3 mb-8">
@@ -126,7 +134,7 @@ export default function AgentVerificationPage() {
             label="MEMBERSHIP NUMBER"
             placeholder="e.g. AWA/2024/001"
             value={membershipNumber}
-            onChange={(e) => setMembershipNumber(e.target.value)}
+            onChangeValue={setMembershipNumber}
           />
 
           <div>

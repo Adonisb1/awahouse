@@ -15,6 +15,7 @@ export default function NINVerificationPage() {
   const activeRole = useAuthStore((s) => s.activeRole);
   const [nin, setNin] = React.useState('');
   const [status, setStatus] = React.useState<'idle' | 'loading' | 'success'>('idle');
+  const [error, setError] = React.useState('');
 
   const submitNinMutation = trpc.verification.submitNin.useMutation();
   const { data: statusData, refetch: refetchStatus } = trpc.verification.checkStatus.useQuery(undefined, {
@@ -51,12 +52,12 @@ export default function NINVerificationPage() {
           faceImageBase64: 'stub-image'
         });
         refetchStatus();
-      } catch (error) {
-        const msg = error instanceof Error ? error.message : '';
+      } catch (err: any) {
+        const msg = err?.message ?? '';
         if (msg.includes('already verified')) {
           setStatus('success');
         } else {
-          console.error('NIN submission failed:', error);
+          setError(msg || 'NIN verification failed');
           setStatus('idle');
         }
       }
@@ -82,6 +83,12 @@ export default function NINVerificationPage() {
           <p className="text-sm text-muted text-center mb-10">
             Your NIN unlocks all verified features on Awahouse.
           </p>
+
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl px-4 py-3 mb-6">
+              {error}
+            </div>
+          )}
 
           {/* Step Indicator */}
           <div className="flex items-center justify-center gap-4 mb-10">
