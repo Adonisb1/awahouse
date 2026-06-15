@@ -38,6 +38,10 @@ export class ReviewService {
       },
     });
 
+    if (input.propertyId) {
+      await this._refreshPropertyRating(input.propertyId);
+    }
+
     return review;
   }
 
@@ -66,8 +70,18 @@ export class ReviewService {
   }
 
   async aggregateRating(input: { propertyId?: string; revieweeId?: string }) {
-    const where: Record<string, unknown> = { isPublished: true };
+    if (input.propertyId) {
+      const property = await prisma.property.findUnique({
+        where: { id: input.propertyId },
+        select: { metadata: true },
+      });
+      const cached = property?.metadata as { reviewStats?: { averageRating: number; totalReviews: number } } | null;
+      if (cached?.reviewStats) {
+        return { average: cached.reviewStats.averageRating, count: cached.reviewStats.totalReviews };
+      }
+    }
 
+    const where: Record<string, unknown> = { isPublished: true };
     if (input.propertyId) where.propertyId = input.propertyId;
     if (input.revieweeId) where.revieweeId = input.revieweeId;
 
@@ -94,7 +108,35 @@ export class ReviewService {
       data: { isPublished: false },
     });
 
+    if (review.propertyId) {
+      await this._refreshPropertyRating(review.propertyId);
+    }
+
     return { success: true };
+  }
+
+  private async _refreshPropertyRating(propertyId: string) {
+    const result = await prisma.review.aggregate({
+      where: { propertyId, isPublished: true },
+      _avg: { rating: true },
+      _count: { rating: true },
+    });
+
+    const reviewStats = {
+      averageRating: result._avg.rating ? Math.round(result._avg.rating * 10) / 10 : 0,
+      totalReviews: result._count.rating,
+    };
+
+    const existing = await prisma.property.findUnique({
+      where: { id: propertyId },
+      select: { metadata: true },
+    });
+    const currentMetadata = existing?.metadata as Record<string, unknown> | null ?? {};
+
+    await prisma.property.update({
+      where: { id: propertyId },
+      data: { metadata: { ...currentMetadata, reviewStats } },
+    });
   }
 }
 
