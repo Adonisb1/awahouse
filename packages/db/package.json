@@ -9,11 +9,15 @@
     "studio": "prisma studio",
     "seed": "tsx seed.ts"
   },
+  "prisma": {
+    "seed": "pnpm tsx seed.ts"
+  },
   "dependencies": {
     "@prisma/client": "^5.14.0",
     "@supabase/supabase-js": "^2.107.0",
     "bcryptjs": "^2.4.3",
-    "dotenv": "^16.6.1"
+    "dotenv": "^16.6.1",
+    "ws": "^8.21.0"
   },
   "devDependencies": {
     "prisma": "^5.14.0",

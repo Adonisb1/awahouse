@@ -2,6 +2,7 @@ import { PrismaClient } from '@prisma/client';
 import { createClient } from '@supabase/supabase-js';
 import crypto from 'node:crypto';
 import dotenv from 'dotenv';
+import ws from 'ws';
 
 dotenv.config({ path: '../../.env' });
 
@@ -17,6 +18,8 @@ function createSupabaseAdmin() {
   }
   return createClient(supabaseUrl, serviceRoleKey, {
     auth: { autoRefreshToken: false, persistSession: false },
+    global: { headers: { 'X-Client-Info': 'awahouse-seed' } },
+    realtime: { transport: ws },
   });
 }
 
@@ -31,7 +34,8 @@ async function main() {
     await prisma.user.create({
       data: {
         email: adminEmail,
-        role: 'admin',
+        roles: ['admin'],
+        activeRole: 'admin',
         firstName: 'Awa',
         lastName: 'Admin',
         rentScore: 500,
