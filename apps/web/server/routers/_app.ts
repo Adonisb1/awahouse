@@ -8,6 +8,7 @@ import { adminRouter } from './admin';
 import { notificationRouter } from './notifications';
 import { rentInstalmentsRouter } from './rentInstalments';
 import { rentScoreRouter } from './rentScore';
+import { agentRouter } from './agent';
 
 export const appRouter = router({
   auth: authRouter,
@@ -16,6 +17,7 @@ export const appRouter = router({
   reviews: reviewsRouter,
   escrow: escrowRouter,
   admin: adminRouter,
+  agent: agentRouter,
   notifications: notificationRouter,
   rentInstalments: rentInstalmentsRouter,
   rentScore: rentScoreRouter,
