@@ -105,27 +105,29 @@ export default function AgentVerificationPage() {
           <label className="block font-mono text-[11px] uppercase tracking-widest text-muted mb-3">
             SELECT PROFESSIONAL BODY
           </label>
-          {professionalBodies.map((body) => (
-            <div
-              key={body.id}
-              onClick={() => setSelectedBody(body.id)}
-              className={cn(
-                'p-4 bg-white border-2 rounded-card transition-all duration-200 cursor-pointer flex items-center gap-3',
-                selectedBody === body.id ? 'border-terra bg-terra-50 shadow-sm' : 'border-outline-variant hover:border-terra/30'
-              )}
-            >
-              <div className={cn(
-                'w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all',
-                selectedBody === body.id ? 'border-terra' : 'border-outline-variant'
-              )}>
-                {selectedBody === body.id && <div className="w-2.5 h-2.5 bg-terra rounded-full" />}
+          <div className="grid grid-cols-2 gap-3">
+            {professionalBodies.map((body) => (
+              <div
+                key={body.id}
+                onClick={() => setSelectedBody(body.id)}
+                className={cn(
+                  'p-4 bg-white border-2 rounded-card transition-all duration-200 cursor-pointer flex flex-col justify-between gap-2 h-32',
+                  selectedBody === body.id ? 'border-terra bg-terra-50 shadow-sm' : 'border-outline-variant hover:border-terra/30'
+                )}
+              >
+                <div className={cn(
+                  'w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all',
+                  selectedBody === body.id ? 'border-terra' : 'border-outline-variant'
+                )}>
+                  {selectedBody === body.id && <div className="w-3 h-3 bg-terra rounded-full" />}
+                </div>
+                <div>
+                  <p className="font-bold text-charcoal text-sm">{body.id}</p>
+                  <p className="text-[10px] text-muted line-clamp-2">{body.name}</p>
+                </div>
               </div>
-              <div className="flex-1">
-                <p className="font-bold text-charcoal text-sm">{body.id}</p>
-                <p className="text-[10px] text-muted truncate">{body.name}</p>
-              </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
 
         {/* Inputs */}

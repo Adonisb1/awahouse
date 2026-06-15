@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, Edit2, Trash2, User as UserIcon, ArrowRight, CheckCircle2, Users } from 'lucide-react';
+import { Plus, Edit2, Trash2, User as UserIcon, ArrowRight, CheckCircle2, Users, Building, Wallet, TrendingUp, Star } from 'lucide-react';
 import { TopNav } from '@/components/layout/TopNav';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { KoboDisplay } from '@/components/ui/KoboDisplay';
@@ -50,7 +50,7 @@ export function AgentDashboardView() {
   const verificationStatus = hasNinApproved ? 'verified' : 'pending';
 
   return (
-    <div className="flex flex-col min-h-screen bg-sand">
+    <div className="min-h-screen bg-sand pb-[80px]">
       <TopNav
         variant="brand"
         actions={
@@ -58,15 +58,15 @@ export function AgentDashboardView() {
             <NotificationBell />
             <Link 
               href="/agent/profile"
-              className="w-8 h-8 rounded-full bg-terra/10 flex items-center justify-center hover:bg-terra/20 transition-colors"
+              className="w-10 h-10 rounded-full bg-white border border-outline-variant flex items-center justify-center hover:bg-sand-warm transition-colors"
             >
-              <UserIcon size={16} className="text-terra-dark" />
+              <UserIcon size={20} className="text-muted" />
             </Link>
           </div>
         }
       />
 
-      <div className="flex-1 overflow-y-auto px-4 py-8">
+      <div className="max-w-5xl mx-auto px-4 py-8">
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl px-4 py-3 mb-6">
             {error}
@@ -78,7 +78,7 @@ export function AgentDashboardView() {
         <div className="mb-8">
           <p className="text-[13px] text-muted mb-1">Good morning</p>
           <div className="flex items-center gap-2">
-            <h2 className="font-display text-2xl font-bold text-charcoal leading-tight">
+            <h2 className="font-playfair text-2xl font-bold text-charcoal leading-tight">
               {userName}
             </h2>
             {stats && stats.avgRating && (
@@ -89,33 +89,30 @@ export function AgentDashboardView() {
           </div>
         </div>
 
-        <div className="grid grid-cols-4 gap-3 mb-8">
-          <div className="bg-white border border-outline-variant rounded-card p-4 text-center shadow-sm">
-            <div className="font-mono text-sm font-bold text-terra-dark mb-1">
-              {stats ? stats.listingsCount : '..'}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
+          <div className="bg-white border border-outline-variant rounded-card p-6 shadow-sm">
+            <div className="font-mono text-[9px] uppercase text-muted tracking-widest mb-1">Listings</div>
+            <div className="font-playfair text-3xl font-bold text-terra-dark">
+              {listingsLoading ? '..' : properties.length}
             </div>
-            <div className="font-mono text-[9px] uppercase text-muted tracking-tighter">Listings</div>
           </div>
-          <div className="bg-white border border-outline-variant rounded-card p-4 text-center shadow-sm">
-            <div className="font-mono text-sm font-bold text-terra-dark mb-1">
-              {stats ? stats.activeEscrows : '..'}
+          <div className="bg-white border border-outline-variant rounded-card p-6 shadow-sm">
+            <div className="font-mono text-[9px] uppercase text-muted tracking-widest mb-1">Active Escrows</div>
+            <div className="font-playfair text-3xl font-bold text-terra-dark">
+              {escrowsData ? activeEscrows.length : '..'}
             </div>
-            <div className="font-mono text-[9px] uppercase text-muted tracking-tighter">Active</div>
           </div>
-          <button
-            onClick={() => router.push('/agent/commission')}
-            className="bg-white border border-outline-variant rounded-card p-4 text-center shadow-sm hover:border-terra transition-colors"
-          >
-            <div className="font-mono text-sm font-bold text-terra-dark mb-1">
+          <div className="bg-white border border-outline-variant rounded-card p-6 shadow-sm">
+            <div className="font-mono text-[9px] uppercase text-muted tracking-widest mb-1">Commission</div>
+            <div className="font-playfair text-2xl font-bold text-terra-dark">
               {stats ? <KoboDisplay kobo={Number(stats.totalCommissionKobo)} size="sm" /> : '..'}
             </div>
-            <div className="font-mono text-[9px] uppercase text-muted tracking-tighter">Commission</div>
-          </button>
-          <div className="bg-white border border-outline-variant rounded-card p-4 text-center shadow-sm">
-            <div className="font-mono text-sm font-bold text-terra-dark mb-1">
+          </div>
+          <div className="bg-white border border-outline-variant rounded-card p-6 shadow-sm">
+            <div className="font-mono text-[9px] uppercase text-muted tracking-widest mb-1">Rating</div>
+            <div className="font-playfair text-3xl font-bold text-terra-dark">
               {stats ? (stats.avgRating ? stats.avgRating.toFixed(1) : '—') : '..'}
             </div>
-            <div className="font-mono text-[9px] uppercase text-muted tracking-tighter">Rating</div>
           </div>
         </div>
 
@@ -124,7 +121,7 @@ export function AgentDashboardView() {
             <div className="flex items-center justify-between">
               <h3 className="font-display text-lg font-bold text-charcoal">Active Escrows</h3>
               {activeEscrows.length > 0 && (
-                <Button size="sm" variant="ghost" onClick={() => router.push('/escrow')}>
+                <Button size="sm" variant="ghost" onClick={() => router.push('/agent/escrow')}>
                   View all <ArrowRight className="h-3 w-3 ml-1" />
                 </Button>
               )}
@@ -135,7 +132,7 @@ export function AgentDashboardView() {
                   <div
                     key={e.id}
                     className="bg-white border border-outline-variant rounded-card p-4 shadow-sm cursor-pointer hover:border-terra transition-colors"
-                    onClick={() => router.push(`/escrow/${e.id}`)}
+                    onClick={() => router.push(`/agent/escrow/${e.id}`)}
                   >
                     <div className="flex items-center justify-between mb-1">
                       <p className="font-semibold text-sm text-charcoal truncate">{e.property.title}</p>
@@ -199,57 +196,58 @@ export function AgentDashboardView() {
                 <Plus size={16} /> Add Listing
               </Button>
             </div>
-
+            
             {listingsLoading ? (
-              <div className="space-y-4">
-                {[1, 2].map(i => <div key={i} className="h-24 bg-white rounded-card animate-pulse shadow-sm" />)}
-              </div>
+                <div className="space-y-4">
+                    {[1, 2].map(i => <div key={i} className="h-24 bg-white rounded-card animate-pulse shadow-sm" />)}
+                </div>
             ) : properties.length > 0 ? (
-              <div className="space-y-4">
-                {properties.slice(0, 5).map((prop) => (
-                  <div key={prop.id} className="bg-white border border-outline-variant rounded-card p-4 flex gap-4 shadow-sm hover:border-terra transition-colors">
-                    <div className="w-20 h-20 rounded-xl bg-sand-warm overflow-hidden shrink-0">
-                      {prop.images?.[0] ? (
-                        <img src={prop.images[0].url} alt={prop.title} className="w-full h-full object-cover" />
-                      ) : (
-                        <div className="w-full h-full bg-gradient-to-br from-terra/10 to-terra/5 flex items-center justify-center text-terra/30 font-playfair italic text-xl">A</div>
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0 flex flex-col justify-center">
-                      <h4 className="font-bold text-charcoal text-base truncate mb-1">{prop.title}</h4>
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="text-xs font-mono text-muted uppercase">{prop.lga}</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <div className="flex gap-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-8 w-8 p-0 rounded-full"
-                            onClick={() => router.push(`/agent/listings/${prop.id}/edit`)}
-                          >
-                            <Edit2 size={14} />
-                          </Button>
-                          {!prop.images?.[0] && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 w-8 p-0 rounded-full text-red-500 hover:text-red-600 hover:bg-red-50"
-                              onClick={() => handleDelete(prop.id)}
-                            >
-                              <Trash2 size={14} />
-                            </Button>
-                          )}
+                <div className="space-y-4">
+                    {properties.map((prop) => (
+                        <div key={prop.id} className="bg-white border border-outline-variant rounded-card p-4 flex gap-4 shadow-sm hover:border-terra transition-colors">
+                        <div className="w-20 h-20 rounded-xl bg-sand-warm overflow-hidden shrink-0">
+                            {prop.images?.[0] ? (
+                                <img src={prop.images[0].url} alt={prop.title} className="w-full h-full object-cover" />
+                            ) : (
+                                <div className="w-full h-full bg-gradient-to-br from-terra/10 to-terra/5 flex items-center justify-center text-terra/30 font-playfair italic text-xl">A</div>
+                            )}
                         </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                        <div className="flex-1 min-w-0 flex flex-col justify-center">
+                            <h4 className="font-bold text-charcoal text-base truncate mb-1">{prop.title}</h4>
+                            <div className="flex items-center gap-2 mb-2">
+                              <span className="text-xs font-mono text-muted uppercase">{prop.lga}</span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <div className="font-playfair font-bold text-terra-dark">
+                                <KoboDisplay kobo={Number(prop.priceKobo)} size="sm" />
+                              </div>
+                              <div className="flex gap-2">
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm" 
+                                  className="h-8 w-8 p-0 rounded-full"
+                                  onClick={() => router.push(`/agent/listings/${prop.id}/edit`)}
+                                >
+                                  <Edit2 size={14} />
+                                </Button>
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm" 
+                                  className="h-8 w-8 p-0 rounded-full text-red-500 hover:text-red-600 hover:bg-red-50"
+                                  onClick={() => handleDelete(prop.id)}
+                                >
+                                  <Trash2 size={14} />
+                                </Button>
+                              </div>
+                            </div>
+                        </div>
+                        </div>
+                    ))}
+                </div>
             ) : (
-              <div className="bg-white border border-outline-variant rounded-card p-10 text-center text-muted text-sm">
-                No listings found. Create your first listing to get started.
-              </div>
+                <div className="bg-white border border-outline-variant rounded-card p-10 text-center text-muted text-sm">
+                  No listings found. Create your first listing to get started.
+                </div>
             )}
           </section>
         </div>

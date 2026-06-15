@@ -2,14 +2,15 @@
 
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, Edit2, Trash2, User as UserIcon, ArrowRight } from 'lucide-react';
+import { Plus, Edit2, Trash2, User as UserIcon, ArrowRight, CheckCircle2, Users, Building, Wallet, TrendingUp, Star } from 'lucide-react';
 import { TopNav } from '@/components/layout/TopNav';
+import { BottomNav } from '@/components/layout/BottomNav';
 import { KoboDisplay } from '@/components/ui/KoboDisplay';
 import { EscrowStatusChip, EscrowStatus } from '@/components/escrow/EscrowStatusChip';
 import { Button } from '@/components/ui/Button';
 import { NotificationBell } from '@/components/layout/NotificationBell';
-import { trpc } from '@/lib/trpc/react';
 import { VerificationBanner } from '@/components/dashboard/VerificationBanner';
+import { trpc } from '@/lib/trpc/react';
 import Link from 'next/link';
 
 export function LandlordDashboardView() {
@@ -26,7 +27,7 @@ export function LandlordDashboardView() {
   const totalPayout = escrows
     .filter(e => e.status === 'completed')
     .reduce((sum, e) => sum + Number(e.amountKobo) - Number(e.platformFeeKobo || 0n), 0);
-  const hasNinApproved = verifications?.verifications?.some(v => v.type === 'nin' && v.status === 'approved');
+  const hasNinApproved = verifications?.verifications?.some((v: any) => v.type === 'nin' && v.status === 'approved');
   const verificationStatus = hasNinApproved ? 'verified' : 'pending';
 
   const deleteMutation = trpc.properties.delete.useMutation({
@@ -41,7 +42,7 @@ export function LandlordDashboardView() {
   };
 
   return (
-    <div className="min-h-screen bg-sand">
+    <div className="min-h-screen bg-sand pb-[80px]">
       <TopNav
         variant="brand"
         actions={
@@ -49,9 +50,9 @@ export function LandlordDashboardView() {
             <NotificationBell />
             <Link 
               href="/landlord/profile"
-              className="w-8 h-8 rounded-full bg-terra/10 flex items-center justify-center hover:bg-terra/20 transition-colors"
+              className="w-10 h-10 rounded-full bg-white border border-outline-variant flex items-center justify-center text-muted active:scale-95 transition-transform"
             >
-              <UserIcon size={16} className="text-terra-dark" />
+              <UserIcon size={20} />
             </Link>
           </div>
         }
@@ -68,25 +69,25 @@ export function LandlordDashboardView() {
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
           <div className="bg-white border border-outline-variant rounded-card p-6 shadow-sm">
-            <div className="font-mono text-xs uppercase text-muted tracking-widest mb-2">Total Listings</div>
+            <div className="font-mono text-[9px] uppercase text-muted tracking-widest mb-1">Listings</div>
             <div className="font-playfair text-3xl font-bold text-terra-dark">
               {listingsLoading ? '..' : properties.length}
             </div>
           </div>
           <div className="bg-white border border-outline-variant rounded-card p-6 shadow-sm">
-            <div className="font-mono text-xs uppercase text-muted tracking-widest mb-2">Active Escrows</div>
+            <div className="font-mono text-[9px] uppercase text-muted tracking-widest mb-1">Active Escrows</div>
             <div className="font-playfair text-3xl font-bold text-terra-dark">
               {escrowsData ? activeEscrows.length : '..'}
             </div>
           </div>
           <div className="bg-white border border-outline-variant rounded-card p-6 shadow-sm">
-            <div className="font-mono text-xs uppercase text-muted tracking-widest mb-2">Total Payout</div>
-            <div className="font-playfair text-3xl font-bold text-terra-dark">
+            <div className="font-mono text-[9px] uppercase text-muted tracking-widest mb-1">Total Payout</div>
+            <div className="font-playfair text-2xl font-bold text-terra-dark">
               {escrowsData ? <KoboDisplay kobo={totalPayout} size="sm" /> : '..'}
             </div>
           </div>
           <div className="bg-white border border-outline-variant rounded-card p-6 shadow-sm">
-            <div className="font-mono text-xs uppercase text-muted tracking-widest mb-2">Rating</div>
+            <div className="font-mono text-[9px] uppercase text-muted tracking-widest mb-1">Rating</div>
             <div className="font-playfair text-3xl font-bold text-terra-dark">&mdash;</div>
           </div>
         </div>
@@ -94,7 +95,7 @@ export function LandlordDashboardView() {
         <div className="grid md:grid-cols-3 gap-8">
           <section className="md:col-span-1 space-y-8">
             <div className="flex items-center justify-between">
-              <h3 className="font-playfair text-xl font-bold text-charcoal mb-4">Active Escrows</h3>
+              <h3 className="font-display text-lg font-bold text-charcoal">Active Escrows</h3>
               {activeEscrows.length > 0 && (
                 <Button size="sm" variant="ghost" onClick={() => router.push('/landlord/escrow')}>
                   View all <ArrowRight className="h-3 w-3 ml-1" />
@@ -126,7 +127,7 @@ export function LandlordDashboardView() {
 
           <section className="md:col-span-2">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="font-playfair text-xl font-bold text-charcoal">My Listings</h3>
+              <h3 className="font-display text-lg font-bold text-charcoal">My Listings</h3>
               <Button
                 variant="primary"
                 size="md"
@@ -139,7 +140,7 @@ export function LandlordDashboardView() {
             
             {listingsLoading ? (
                 <div className="space-y-4">
-                    {[1, 2].map(i => <div key={i} className="h-24 bg-white rounded-card animate-pulse" />)}
+                    {[1, 2].map(i => <div key={i} className="h-24 bg-white rounded-card animate-pulse shadow-sm" />)}
                 </div>
             ) : properties.length > 0 ? (
                 <div className="space-y-4">
@@ -155,10 +156,13 @@ export function LandlordDashboardView() {
                         <div className="flex-1 min-w-0 flex flex-col justify-center">
                             <h4 className="font-bold text-charcoal text-base truncate mb-1">{prop.title}</h4>
                             <div className="flex items-center gap-2 mb-2">
-                            <span className="text-xs font-mono text-muted uppercase">{prop.lga}</span>
+                              <span className="text-xs font-mono text-muted uppercase">{prop.lga}</span>
                             </div>
                             <div className="flex justify-between items-center">
-                            <div className="flex gap-2">
+                              <div className="font-playfair font-bold text-terra-dark">
+                                <KoboDisplay kobo={Number(prop.priceKobo)} size="sm" />
+                              </div>
+                              <div className="flex gap-2">
                                 <Button 
                                   variant="ghost" 
                                   size="sm" 
@@ -175,7 +179,7 @@ export function LandlordDashboardView() {
                                 >
                                   <Trash2 size={14} />
                                 </Button>
-                            </div>
+                              </div>
                             </div>
                         </div>
                         </div>
@@ -189,6 +193,7 @@ export function LandlordDashboardView() {
           </section>
         </div>
       </div>
+      <BottomNav role="LANDLORD" />
     </div>
   );
 }
