@@ -18,6 +18,20 @@ const nextConfig = {
   experimental: {
     optimizePackageImports: ['lucide-react', '@radix-ui/react-icons'],
   },
+  async redirects() {
+    return [
+      {
+        source: '/agent/dashboard',
+        destination: '/agent',
+        permanent: true,
+      },
+      {
+        source: '/landlord/dashboard',
+        destination: '/landlord',
+        permanent: true,
+      },
+    ];
+  },
 };
 
 module.exports = nextConfig;

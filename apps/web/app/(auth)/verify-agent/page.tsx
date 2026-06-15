@@ -63,7 +63,7 @@ export default function AgentVerificationPage() {
         fileType: file.type,
         fileBase64: base64,
       });
-      router.push('/agent/dashboard');
+      router.push('/agent');
     } catch (err: any) {
       setError(err?.message ?? 'Upload failed');
     }
