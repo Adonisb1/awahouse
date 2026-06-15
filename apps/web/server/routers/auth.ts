@@ -2,7 +2,7 @@ import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 import { router, publicProcedure, authedProcedure } from '../trpc';
 import {
-  sendOtpInput, verifyOtpInput, signInWithGoogleInput,
+  sendOtpInput, verifyOtpInput, signInInput, signInWithGoogleInput,
   switchRoleInput, updateProfileInput,
 } from '../schemas/auth';
 import { createServerSupabaseClient } from '@/lib/auth/supabase';
@@ -17,17 +17,10 @@ export const authRouter = router({
     .mutation(async ({ input }) => {
       const existingUser = await prisma.user.findUnique({ where: { email: input.email } });
 
-      if (input.intent === 'signup' && existingUser) {
+      if (existingUser) {
         throw new TRPCError({
           code: 'CONFLICT',
           message: 'An account with this email already exists. Please log in instead.',
-        });
-      }
-
-      if (input.intent === 'login' && !existingUser) {
-        throw new TRPCError({
-          code: 'NOT_FOUND',
-          message: 'No account found with this email. Please sign up instead.',
         });
       }
 
@@ -48,13 +41,10 @@ export const authRouter = router({
 
       const supabase = createServerSupabaseClient();
       if (supabase) {
-        const { error } = await supabase.auth.signInWithOtp({
+        await supabase.auth.signInWithOtp({
           email: input.email,
           options: { data: { role: input.role } },
         });
-        if (error) {
-          console.error('Supabase OTP error:', error.message);
-        }
       }
 
       return { success: true };
@@ -74,7 +64,6 @@ export const authRouter = router({
         });
         if (!error && data.user) {
           supabaseUserId = data.user.id;
-        } else if (error) {
         }
       }
 
@@ -82,6 +71,12 @@ export const authRouter = router({
         throw new TRPCError({
           code: 'UNAUTHORIZED',
           message: 'Invalid or expired OTP',
+        });
+      }
+
+      if (supabaseUserId && input.password && supabase) {
+        await supabase.auth.admin.updateUserById(supabaseUserId, {
+          password: input.password,
         });
       }
 
@@ -101,13 +96,31 @@ export const authRouter = router({
           },
         });
 
+        let sessionToken: string | null = null;
+        if (input.password && supabase) {
+          const { data: signInData } = await supabase.auth.signInWithPassword({
+            email: input.email,
+            password: input.password,
+          });
+          sessionToken = signInData?.session?.access_token ?? null;
+        }
+
         return {
           success: true,
           userId: newUser.id,
           roles: [newUserRole],
           activeRole: newUserRole,
-          sessionToken: null,
+          sessionToken,
         };
+      }
+
+      let sessionToken: string | null = null;
+      if (input.password && supabase) {
+        const { data: signInData } = await supabase.auth.signInWithPassword({
+          email: input.email,
+          password: input.password,
+        });
+        sessionToken = signInData?.session?.access_token ?? null;
       }
 
       return {
@@ -115,7 +128,54 @@ export const authRouter = router({
         userId: existingUser.id,
         roles: existingUser.roles,
         activeRole: existingUser.activeRole,
-        sessionToken: null,
+        sessionToken,
+      };
+    }),
+
+  signIn: publicProcedure
+    .input(signInInput)
+    .mutation(async ({ input }) => {
+      const supabase = createServerSupabaseClient();
+
+      if (!supabase) {
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Authentication service unavailable',
+        });
+      }
+
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: input.email,
+        password: input.password,
+      });
+
+      if (error || !data.user) {
+        throw new TRPCError({
+          code: 'UNAUTHORIZED',
+          message: error?.message === 'Invalid login credentials'
+            ? 'Invalid email or password'
+            : (error?.message ?? 'Sign in failed'),
+        });
+      }
+
+      let dbUser = await prisma.user.findUnique({ where: { email: input.email } });
+
+      if (!dbUser) {
+        dbUser = await prisma.user.create({
+          data: {
+            email: input.email,
+            roles: ['tenant'],
+            activeRole: 'tenant',
+          },
+        });
+      }
+
+      return {
+        success: true,
+        userId: dbUser.id,
+        roles: dbUser.roles,
+        activeRole: dbUser.activeRole,
+        sessionToken: data.session?.access_token ?? null,
       };
     }),
 
