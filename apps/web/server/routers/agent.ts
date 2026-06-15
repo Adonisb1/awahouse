@@ -1,3 +1,5 @@
+import { z } from 'zod';
+import { TRPCError } from '@trpc/server';
 import { prisma } from '@awahouse/db';
 import { router, agentProcedure, publicProcedure } from '../trpc';
 
@@ -113,4 +115,59 @@ export const agentRouter = router({
       };
     });
   }),
+
+  getPublicProfile: publicProcedure
+    .input(z.object({ id: z.string().uuid() }))
+    .query(async ({ input }) => {
+      const user = await prisma.user.findUnique({
+        where: { id: input.id, isDeleted: false, roles: { has: 'agent' } },
+        include: {
+          verifications: { where: { status: 'approved' } },
+          landlordProfile: { select: { firmName: true } },
+          properties: {
+            where: { isDeleted: false, isAvailable: true },
+            include: { images: { take: 1, orderBy: { sortOrder: 'asc' } } },
+            take: 20,
+            orderBy: { createdAt: 'desc' },
+          },
+          _count: { select: { escrowAsAgent: { where: { status: 'completed' } } } },
+        },
+      });
+
+      if (!user) {
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'Agent not found' });
+      }
+
+      const ratingAgg = await prisma.review.aggregate({
+        where: { revieweeId: user.id, isPublished: true },
+        _avg: { rating: true },
+        _count: { rating: true },
+      });
+
+      const approvedTypes = user.verifications.map((v) => v.type);
+      const profBodies = PROFESSIONAL_BODIES.filter((b) => approvedTypes.includes(b));
+
+      return {
+        id: user.id,
+        name: `${user.firstName ?? ''} ${user.lastName ?? ''}`.trim() || 'Agent',
+        firm: user.landlordProfile?.firmName ?? null,
+        avatarUrl: user.avatarUrl,
+        escrowCount: user._count.escrowAsAgent,
+        avgRating: ratingAgg._avg.rating ?? null,
+        reviewCount: ratingAgg._count.rating,
+        professionalBodies: profBodies.map(
+          (b) => b.toUpperCase() as 'LASRERA' | 'ESVARBON' | 'NIESV' | 'AEAN' | 'ERCAAN' | 'REDAN',
+        ),
+        listings: user.properties.map((p) => ({
+          id: p.id,
+          title: p.title,
+          lga: p.lga,
+          priceKobo: p.priceKobo,
+          imageUrl: p.images[0]?.url ?? null,
+          type: p.type,
+          bedrooms: p.bedrooms,
+          bathrooms: p.bathrooms,
+        })),
+      };
+    }),
 });

@@ -203,7 +203,7 @@ export default function ExplorePage() {
                   rating={agent.rating}
                   isOnline={agent.isOnline}
                   professionalBodies={agent.professionalBodies}
-                  onMessage={() => {}}
+                  onMessage={(id) => router.push(`/agents/${id}`)}
                 />
               ))
             ) : (
