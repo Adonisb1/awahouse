@@ -136,7 +136,7 @@ export default function AgentCreateListingPage() {
                   ? 'Verify your NIN to create listings.'
                   : 'Complete your professional body verification to create listings.'}
             </span>
-            <a href="/onboarding/verify-agent" className="ml-auto text-amber-900 font-bold underline whitespace-nowrap">
+            <a href="/verify-agent" className="ml-auto text-amber-900 font-bold underline whitespace-nowrap">
               Verify now
             </a>
           </div>

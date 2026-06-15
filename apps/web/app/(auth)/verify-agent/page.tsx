@@ -1,129 +1,226 @@
 'use client';
 
-import { useState } from 'react';
+import * as React from 'react';
 import { useRouter } from 'next/navigation';
-import { Shield, CheckCircle } from 'lucide-react';
-import { Button } from '@/components/ui/Button';
-import { Card, CardContent } from '@/components/ui/Card';
-import { Badge } from '@/components/ui/Badge';
-import { TopNav } from '@/components/layout/TopNav';
+import { motion } from 'framer-motion';
+import { Info, Upload, ChevronDown, CheckCircle2, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
+import { TopNav } from '@/components/layout/TopNav';
 import { trpc } from '@/lib/trpc/react';
+import type { VerificationType } from '@awahouse/types';
 
 const professionalBodies = [
-  { id: 'lasrera', name: 'LASRERA', description: 'Lagos State Real Estate Regulatory Authority', recommended: true },
-  { id: 'esvarbon', name: 'ESVARBON', description: 'Estate Surveyors and Valuers Registration Board of Nigeria' },
-  { id: 'niesv', name: 'NIESV', description: 'Nigerian Institution of Estate Surveyors and Valuers' },
-  { id: 'aean', name: 'AEAN', description: 'Association of Estate Agents in Nigeria' },
-  { id: 'ercaan', name: 'ERCAAN', description: 'Estate and Real estate Consultants Association of Nigeria' },
-  { id: 'redan', name: 'REDAN', description: 'Real Estate Developers Association of Nigeria' },
-] as const;
+  { id: 'LASRERA', name: 'Lagos State Real Estate Regulatory Authority' },
+  { id: 'ESVARBON', name: 'Estate Surveyors and Valuers Registration Board' },
+  { id: 'NIESV', name: 'Nigerian Institution of Estate Surveyors and Valuers' },
+  { id: 'AEAN', name: 'Association of Estate Agents in Nigeria' },
+  { id: 'ERCAAN', name: 'Estate Rent and Commission Agents Association of Nigeria' },
+  { id: 'REDAN', name: 'Real Estate Developers Association of Nigeria' },
+];
 
-export default function VerifyAgentPage() {
+export default function AgentVerificationPage() {
   const router = useRouter();
-  const [selected, setSelected] = useState<string | null>(null);
-  const [done, setDone] = useState(false);
+  const [selectedBody, setSelectedBody] = React.useState<string | null>(null);
+  const [membershipNumber, setMembershipNumber] = React.useState('');
+  const [expiryMonth, setExpiryMonth] = React.useState('');
+  const [expiryYear, setExpiryYear] = React.useState('');
+  const [file, setFile] = React.useState<File | null>(null);
+  const [error, setError] = React.useState('');
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
-  const mutation = trpc.verification.submitProfessionalBody.useMutation({
-    onSuccess: () => setDone(true),
-  });
+  const uploadMutation = trpc.verification.uploadDocument.useMutation();
 
-  async function handleSubmit() {
-    if (!selected) return;
-    mutation.mutate({ body: selected });
-  }
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setFile(e.target.files[0]);
+    }
+  };
 
-  if (done) {
-    return (
-      <main className="flex min-h-screen flex-col items-center justify-center bg-surface p-6">
-        <CheckCircle className="h-16 w-16 text-success mb-4" />
-        <h1 className="font-display text-3xl italic font-black text-charcoal text-center">
-          Verification submitted
-        </h1>
-        <p className="mt-2 font-body text-charcoal/60 text-center max-w-sm">
-          Your credentials are under review. We&apos;ll notify you once verified.
-        </p>
-        <Button onClick={() => router.push('/agent/listings')} className="mt-8">
-          Done
-        </Button>
-      </main>
-    );
-  }
+  const readFileAsBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const base64 = reader.result;
+        if (typeof base64 !== 'string') return;
+        resolve(base64.split(',')[1] ?? '');
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleSubmit = async () => {
+    if (!file || !selectedBody) return;
+
+    try {
+      setError('');
+      const base64 = await readFileAsBase64(file);
+      await uploadMutation.mutateAsync({
+        verificationType: selectedBody.toLowerCase() as VerificationType,
+        fileName: file.name,
+        fileType: file.type,
+        fileBase64: base64,
+      });
+      router.push('/agent/dashboard');
+    } catch (err: any) {
+      setError(err?.message ?? 'Upload failed');
+    }
+  };
 
   return (
-    <main className="min-h-screen bg-surface p-6">
-      <TopNav variant="back" title="Verify Agent" onBack={() => router.back()} />
+    <div className="flex flex-col min-h-screen bg-sand">
+      <TopNav variant="back" title="Professional Verification" />
 
-      <div className="mx-auto max-w-md pt-4">
-        <div className="flex items-center gap-3 mb-2">
-          <Shield className="h-6 w-6 text-primary" />
-          <h1 className="font-display text-3xl italic font-black text-charcoal">
-            Professional body
+      <div className="flex-1 px-6 py-8 pb-12 overflow-y-auto">
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
+          <h1 className="font-playfair text-2xl font-bold text-charcoal mb-2">
+            Professional Verification
           </h1>
-        </div>
-        <p className="font-body text-charcoal/60 mb-8">
-          Select your professional real estate body. Only one is required.
-        </p>
+          <p className="text-sm text-muted mb-8">
+            Upload your membership certificate for manual review.
+          </p>
+        </motion.div>
 
-        {mutation.error && (
+        {error && (
           <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl px-4 py-3 mb-6">
-            {mutation.error.message}
+            {error}
           </div>
         )}
 
-        <div className="flex flex-col gap-3">
+        {/* Info Box */}
+        <div className="bg-blue-50 border border-blue-200 rounded-[14px] p-4 flex gap-3 mb-8">
+          <Info className="text-blue-500 shrink-0" size={20} />
+          <p className="text-sm text-blue-800 leading-relaxed">
+            Select at least <span className="font-bold">ONE</span> professional body before you can list properties.
+          </p>
+        </div>
+
+        {/* Professional Body Selection */}
+        <div className="space-y-3 mb-8">
+          <label className="block font-mono text-[11px] uppercase tracking-widest text-muted mb-3">
+            SELECT PROFESSIONAL BODY
+          </label>
           {professionalBodies.map((body) => (
-            <button
+            <div
               key={body.id}
-              onClick={() => setSelected(body.id)}
-              className="text-left"
+              onClick={() => setSelectedBody(body.id)}
+              className={cn(
+                'p-4 bg-white border-2 rounded-card transition-all duration-200 cursor-pointer flex items-center gap-3',
+                selectedBody === body.id ? 'border-terra bg-terra-50 shadow-sm' : 'border-outline-variant hover:border-terra/30'
+              )}
             >
-              <Card
-                className={cn(
-                  'cursor-pointer transition-all',
-                  selected === body.id && 'border-primary ring-2 ring-primary/20',
-                )}
-              >
-                <CardContent className="pt-6">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-display text-lg font-bold text-charcoal">
-                          {body.name}
-                        </span>
-                        {'recommended' in body && body.recommended && (
-                          <Badge variant="fully_verified">Recommended</Badge>
-                        )}
-                      </div>
-                      <p className="mt-1 font-body text-sm text-charcoal/60">{body.description}</p>
-                    </div>
-                    <div
-                      className={cn(
-                        'mt-1 flex h-5 w-5 items-center justify-center rounded-full border-2',
-                        selected === body.id
-                          ? 'border-primary bg-primary'
-                          : 'border-charcoal/20',
-                      )}
-                    >
-                      {selected === body.id && (
-                        <div className="h-2 w-2 rounded-full bg-white" />
-                      )}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </button>
+              <div className={cn(
+                'w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all',
+                selectedBody === body.id ? 'border-terra' : 'border-outline-variant'
+              )}>
+                {selectedBody === body.id && <div className="w-2.5 h-2.5 bg-terra rounded-full" />}
+              </div>
+              <div className="flex-1">
+                <p className="font-bold text-charcoal text-sm">{body.id}</p>
+                <p className="text-[10px] text-muted truncate">{body.name}</p>
+              </div>
+            </div>
           ))}
         </div>
 
+        {/* Inputs */}
+        <div className="space-y-6 mb-8">
+          <Input
+            label="MEMBERSHIP NUMBER"
+            placeholder="e.g. AWA/2024/001"
+            value={membershipNumber}
+            onChangeValue={setMembershipNumber}
+          />
+
+          <div>
+            <label className="block font-mono text-[11px] uppercase tracking-widest text-muted mb-1.5">
+              UPLOAD CERTIFICATE
+            </label>
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileChange}
+              className="hidden"
+              accept=".pdf,.jpg,.jpeg,.png"
+            />
+            <div 
+              onClick={() => fileInputRef.current?.click()}
+              className={cn(
+                "w-full h-32 border-2 border-dashed rounded-[14px] flex flex-col items-center justify-center gap-2 cursor-pointer transition-all",
+                file ? "border-success bg-success/5" : "border-outline-variant bg-white hover:bg-sand-50"
+              )}
+            >
+              {file ? (
+                <>
+                  <FileText className="text-success" size={24} />
+                  <p className="text-[13px] font-bold text-charcoal truncate px-4 w-full text-center">{file.name}</p>
+                  <p className="text-[10px] text-success uppercase font-bold tracking-widest">File selected</p>
+                </>
+              ) : (
+                <>
+                  <Upload className="text-muted" size={24} />
+                  <p className="text-[13px] font-bold text-charcoal">Drag or tap to upload</p>
+                  <p className="text-[11px] text-muted">PDF, JPG, PNG · Max 10MB</p>
+                </>
+              )}
+            </div>
+          </div>
+
+          <div>
+            <label className="block font-mono text-[11px] uppercase tracking-widest text-muted mb-1.5">
+              EXPIRY DATE
+            </label>
+            <div className="flex gap-3">
+              <div className="flex-1 relative">
+                <select
+                  value={expiryMonth}
+                  onChange={(e) => setExpiryMonth(e.target.value)}
+                  className="w-full h-[52px] px-4 rounded-input border border-outline-variant bg-white font-sans text-sm appearance-none outline-none focus:border-terra-dark transition-all"
+                >
+                  <option value="" disabled>Month</option>
+                  {['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'].map(m => (
+                    <option key={m} value={m}>{m}</option>
+                  ))}
+                </select>
+                <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-muted pointer-events-none" size={18} />
+              </div>
+              <div className="flex-1 relative">
+                <select
+                  value={expiryYear}
+                  onChange={(e) => setExpiryYear(e.target.value)}
+                  className="w-full h-[52px] px-4 rounded-input border border-outline-variant bg-white font-sans text-sm appearance-none outline-none focus:border-terra-dark transition-all"
+                >
+                  <option value="" disabled>Year</option>
+                  {Array.from({length: 10}, (_, i) => new Date().getFullYear() + i).map(y => (
+                    <option key={y} value={y}>{y}</option>
+                  ))}
+                </select>
+                <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-muted pointer-events-none" size={18} />
+              </div>
+            </div>
+          </div>
+        </div>
+
         <Button
+          variant="primary"
+          size="lg"
+          fullWidth
+          loading={uploadMutation.isPending}
+          disabled={!selectedBody || !membershipNumber || !expiryMonth || !expiryYear || !file}
           onClick={handleSubmit}
-          disabled={!selected || mutation.isPending}
-          className="mt-8 w-full"
+          className="shadow-none"
         >
-          {mutation.isPending ? 'Submitting...' : 'Submit for verification'}
+          Submit for Review
         </Button>
+        <p className="text-[11px] text-center text-muted mt-3">
+          Verification typically takes up to 48 hours.
+        </p>
       </div>
-    </main>
+    </div>
   );
 }

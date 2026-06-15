@@ -28,7 +28,7 @@ export function VerificationBanner({ status }: { status: string }) {
       <Button 
         variant="secondary" 
         size="sm" 
-        onClick={() => router.push('/onboarding/verify-agent')}
+        onClick={() => router.push('/verify-agent')}
         className="whitespace-nowrap"
       >
         View Status <ArrowRight size={16} className="ml-2" />
