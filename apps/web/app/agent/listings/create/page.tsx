@@ -40,11 +40,21 @@ export default function AgentCreateListingPage() {
   const [uploading, setUploading] = React.useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
+  const { data: verifications } = trpc.verification.checkStatus.useQuery();
   const createMutation = trpc.properties.create.useMutation({
     onError: (err) => setError(err.message),
   });
 
   const uploadMutation = trpc.properties.uploadImages.useMutation();
+
+  const hasNinApproved = verifications?.verifications?.some(
+    (v: { type: string; status: string }) => v.type === 'nin' && v.status === 'approved',
+  );
+  const hasProfBodyApproved = verifications?.verifications?.some(
+    (v: { type: string; status: string }) =>
+      ['lasrera', 'esvarbon', 'niesv', 'aean', 'ercaan', 'redan'].includes(v.type) && v.status === 'approved',
+  );
+  const canCreate = hasNinApproved && hasProfBodyApproved;
 
   const { register, handleSubmit, watch, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -114,6 +124,21 @@ export default function AgentCreateListingPage() {
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl px-4 py-3 mb-6">
             {error}
+          </div>
+        )}
+
+        {!canCreate && (
+          <div className="bg-amber-50 border border-amber-200 text-amber-800 text-sm rounded-xl px-4 py-3 mb-6 flex items-center gap-2">
+            <span className="text-[10px] font-mono font-bold uppercase tracking-wider">
+              {!hasNinApproved && !hasProfBodyApproved
+                ? 'Verify your NIN and professional body to create listings.'
+                : !hasNinApproved
+                  ? 'Verify your NIN to create listings.'
+                  : 'Complete your professional body verification to create listings.'}
+            </span>
+            <a href="/onboarding/verify-agent" className="ml-auto text-amber-900 font-bold underline whitespace-nowrap">
+              Verify now
+            </a>
           </div>
         )}
 
@@ -254,7 +279,7 @@ export default function AgentCreateListingPage() {
             <Button variant="secondary" type="button" onClick={() => router.push('/agent/listings')}>
               Cancel
             </Button>
-            <Button type="submit" disabled={isPending} loading={isPending}>
+            <Button type="submit" disabled={isPending || !canCreate} loading={isPending}>
               {uploading ? 'Uploading images...' : 'Create Listing'}
             </Button>
           </div>
