@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/Button';
 import { NotificationBell } from '@/components/layout/NotificationBell';
 import { VerificationBanner } from '@/components/dashboard/VerificationBanner';
 import { trpc } from '@/lib/trpc/react';
+import Link from 'next/link';
 
 export function AgentDashboardView() {
   const router = useRouter();
@@ -55,9 +56,12 @@ export function AgentDashboardView() {
         actions={
           <div className="flex items-center gap-3">
             <NotificationBell />
-            <div className="w-8 h-8 rounded-full bg-terra/10 flex items-center justify-center">
+            <Link 
+              href="/agent/profile"
+              className="w-8 h-8 rounded-full bg-terra/10 flex items-center justify-center hover:bg-terra/20 transition-colors"
+            >
               <UserIcon size={16} className="text-terra-dark" />
-            </div>
+            </Link>
           </div>
         }
       />

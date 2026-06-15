@@ -7,6 +7,10 @@ import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { KoboDisplay } from '@/components/ui/KoboDisplay';
 import { trpc } from '@/lib/trpc/react';
+import { TopNav } from '@/components/layout/TopNav';
+import { NotificationBell } from '@/components/layout/NotificationBell';
+import { User as UserIcon } from 'lucide-react';
+import { useAuthStore, type Role } from '@/hooks/useAuthStore';
 
 const STATUS_LABELS: Record<string, string> = {
   paid: 'Paid',
@@ -24,6 +28,7 @@ const STATUS_BADGE_VARIANT: Record<string, 'fully_verified' | 'title_confirmed' 
 
 export default function RentInstalmentsPage() {
   const router = useRouter();
+  const activeRole = useAuthStore((s) => s.activeRole);
   const { data, isLoading } = trpc.rentInstalments.list.useQuery({});
   const { data: escrowsData } = trpc.escrow.list.useQuery({ limit: 50 });
 
@@ -35,11 +40,26 @@ export default function RentInstalmentsPage() {
   );
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-6">
-      <div className="mb-6">
-        <h1 className="font-display text-3xl italic font-black text-charcoal">Instalment Plan</h1>
-        <p className="font-body text-charcoal/60">Monthly rent payment schedule</p>
-      </div>
+    <div className="flex flex-col min-h-screen bg-sand pb-[80px]">
+      <TopNav
+        variant="brand"
+        actions={
+          <div className="flex gap-2">
+            <NotificationBell />
+            <Link 
+              href="/profile"
+              className="w-10 h-10 rounded-full bg-white border border-outline-variant flex items-center justify-center text-muted active:scale-95 transition-transform"
+            >
+              <UserIcon size={20} />
+            </Link>
+          </div>
+        }
+      />
+      <div className="flex-1 mx-auto max-w-3xl px-4 py-6 w-full">
+        <div className="mb-6">
+          <h1 className="font-display text-3xl italic font-black text-charcoal">Instalment Plan</h1>
+          <p className="font-body text-charcoal/60">Monthly rent payment schedule</p>
+        </div>
 
       {isLoading ? (
         <div className="space-y-3">
