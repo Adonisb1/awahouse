@@ -89,12 +89,15 @@ export function AgentDashboardView() {
             </div>
             <div className="font-mono text-[9px] uppercase text-muted tracking-tighter">Active</div>
           </div>
-          <div className="bg-white border border-outline-variant rounded-card p-4 text-center shadow-sm">
+          <button
+            onClick={() => router.push('/agent/commission')}
+            className="bg-white border border-outline-variant rounded-card p-4 text-center shadow-sm hover:border-terra transition-colors"
+          >
             <div className="font-mono text-sm font-bold text-terra-dark mb-1">
               {stats ? <KoboDisplay kobo={Number(stats.totalCommissionKobo)} size="sm" /> : '..'}
             </div>
             <div className="font-mono text-[9px] uppercase text-muted tracking-tighter">Commission</div>
-          </div>
+          </button>
           <div className="bg-white border border-outline-variant rounded-card p-4 text-center shadow-sm">
             <div className="font-mono text-sm font-bold text-terra-dark mb-1">
               {stats ? (stats.avgRating ? stats.avgRating.toFixed(1) : '—') : '..'}
