@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { cn } from '@/lib/utils/cn';
-import { ChevronRight, LogOut } from 'lucide-react';
+import { ChevronLeft, ChevronRight, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 
 interface SidebarItem {
@@ -18,6 +18,7 @@ interface ProfileSidebarLayoutProps {
   activeTab: string;
   onTabChange: (id: string) => void;
   onSignOut: () => void;
+  onBack?: () => void;
   children: React.ReactNode;
 }
 
@@ -28,6 +29,7 @@ export function ProfileSidebarLayout({
   activeTab,
   onTabChange,
   onSignOut,
+  onBack,
   children
 }: ProfileSidebarLayoutProps) {
   return (
@@ -35,6 +37,19 @@ export function ProfileSidebarLayout({
       {/* Sidebar */}
       <aside className="w-full md:w-[320px] lg:w-[380px] md:sticky md:top-0 md:h-screen bg-white border-r border-outline-variant/30 flex flex-col overflow-hidden shadow-sm z-20">
         <div className="flex-1 overflow-y-auto no-scrollbar py-8 px-6">
+          {/* Back Action */}
+          {onBack && (
+            <button 
+              onClick={onBack}
+              className="flex items-center gap-2 text-muted hover:text-terra transition-colors mb-8 font-bold text-xs uppercase tracking-widest group"
+            >
+              <div className="w-8 h-8 rounded-full bg-sand flex items-center justify-center group-hover:bg-terra group-hover:text-white transition-colors">
+                <ChevronLeft size={16} />
+              </div>
+              Back to Dashboard
+            </button>
+          )}
+
           {/* User Summary */}
           <div className="mb-10">
             {userHeader}

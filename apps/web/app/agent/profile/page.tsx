@@ -13,28 +13,37 @@ import {
   UserCheck,
   Users,
   Briefcase,
-  History,
   TrendingUp,
   Mail,
   Phone,
   LayoutDashboard,
   Star,
-  Award
+  Award,
+  Plus,
+  Edit2,
+  Trash2,
+  ArrowRight,
+  Check,
+  Smartphone,
+  ExternalLink
 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import { TopNav } from '@/components/layout/TopNav';
-import { BottomNav, type UserRole } from '@/components/layout/BottomNav';
+import { BottomNav } from '@/components/layout/BottomNav';
 import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
 import { VerifiedBadge } from '@/components/ui/VerifiedBadge';
 import { useAuthStore, type Role } from '@/hooks/useAuthStore';
 import { trpc } from '@/lib/trpc/react';
 import { ProfileSidebarLayout } from '@/components/layout/ProfileSidebarLayout';
 import { NotificationBell } from '@/components/layout/NotificationBell';
 import { KoboDisplay } from '@/components/ui/KoboDisplay';
+import { EscrowStatusChip, EscrowStatus } from '@/components/escrow/EscrowStatusChip';
 import Link from 'next/link';
 
 export default function AgentProfilePage() {
   const router = useRouter();
+  const utils = trpc.useUtils();
   const [activeTab, setActiveTab] = React.useState('overview');
   const [error, setError] = React.useState('');
   const { userId, roles, activeRole, setActiveRole, clearAuth } = useAuthStore();
@@ -42,9 +51,15 @@ export default function AgentProfilePage() {
   const { data: profile } = trpc.auth.getProfile.useQuery();
   const { data: verifData } = trpc.verification.checkStatus.useQuery();
   const { data: stats } = trpc.agent.getDashboardStats.useQuery();
+  const { data: listingsData, isLoading: listingsLoading } = trpc.properties.listMyProperties.useQuery();
+  const { data: escrowsData, isLoading: escrowsLoading } = trpc.escrow.list.useQuery({ limit: 50 });
+  const { data: notificationsData } = trpc.notifications.list.useQuery({ limit: 20 });
   
   const switchRoleMutation = trpc.auth.switchRole.useMutation();
   const signOutMutation = trpc.auth.signOut.useMutation();
+  const deletePropertyMutation = trpc.properties.delete.useMutation({
+    onSuccess: () => utils.properties.listMyProperties.invalidate()
+  });
 
   const handleSignOut = async () => {
     try {
@@ -68,9 +83,18 @@ export default function AgentProfilePage() {
     }
   };
 
+  const handleDeleteProperty = (id: string) => {
+    if (confirm('Are you sure you want to delete this listing?')) {
+      deletePropertyMutation.mutate({ id });
+    }
+  };
+
   const verifications = verifData?.verifications ?? [];
   const isNinVerified = verifications.some(v => v.type === 'nin' && v.status === 'approved');
   const profBodyApproved = verifications.some(
+    v => ['lasrera', 'esvarbon', 'niesv', 'aean', 'ercaan', 'redan'].includes(v.type) && v.status === 'approved'
+  );
+  const activeProfBody = verifications.find(
     v => ['lasrera', 'esvarbon', 'niesv', 'aean', 'ercaan', 'redan'].includes(v.type) && v.status === 'approved'
   );
 
@@ -104,7 +128,7 @@ export default function AgentProfilePage() {
       
       <div className="flex gap-2 mt-4">
          {isNinVerified && <VerifiedBadge type="nin_verified" size="sm" />}
-         {profBodyApproved && <VerifiedBadge type="agent_verified" body="VERIFIED" size="sm" />}
+         {profBodyApproved && <VerifiedBadge type="agent_verified" body={activeProfBody?.type.toUpperCase()} size="sm" />}
       </div>
     </div>
   );
@@ -119,7 +143,7 @@ export default function AgentProfilePage() {
           className={cn(
             "w-full p-3 rounded-xl border-2 flex items-center justify-between transition-all group",
             activeRole === role 
-              ? "bg-terra border-terra text-white shadow-md" 
+              ? "bg-terra border-terra text-white shadow-lg" 
               : "bg-white border-outline-variant text-charcoal hover:border-terra/30"
           )}
         >
@@ -137,7 +161,9 @@ export default function AgentProfilePage() {
             </div>
           </div>
           {activeRole === role ? (
-            <ShieldCheck size={16} className="text-white" />
+            <div className="w-5 h-5 rounded-full bg-white flex items-center justify-center text-terra shadow-sm">
+              <Check size={12} strokeWidth={3} />
+            </div>
           ) : (
             <ChevronRight size={16} className="text-muted/50 group-hover:text-terra" />
           )}
@@ -149,7 +175,7 @@ export default function AgentProfilePage() {
   return (
     <>
       <div className="md:hidden">
-        <TopNav variant="brand" title="Profile" />
+        <TopNav variant="back" title="Profile" onBack={() => router.push('/agent')} />
       </div>
       
       <ProfileSidebarLayout
@@ -159,12 +185,13 @@ export default function AgentProfilePage() {
         activeTab={activeTab}
         onTabChange={setActiveTab}
         onSignOut={handleSignOut}
+        onBack={() => router.push('/agent')}
       >
         {activeTab === 'overview' && (
           <div className="space-y-8">
             <header>
               <h1 className="font-playfair text-4xl font-bold text-charcoal mb-2">Agent Overview</h1>
-              <p className="text-muted leading-relaxed">Track your performance, manages listings and clients.</p>
+              <p className="text-muted leading-relaxed">Track your performance, manage listings and professional credentials.</p>
             </header>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -174,7 +201,7 @@ export default function AgentProfilePage() {
                   <div className="w-10 h-10 rounded-xl bg-sand flex items-center justify-center text-terra">
                     <User size={20} />
                   </div>
-                  <h3 className="font-playfair text-xl font-bold">Agent Profile</h3>
+                  <h3 className="font-playfair text-xl font-bold">Professional Details</h3>
                 </div>
                 
                 <div className="space-y-4">
@@ -183,11 +210,11 @@ export default function AgentProfilePage() {
                     <span className="font-bold text-charcoal">{profile?.firstName} {profile?.lastName}</span>
                   </div>
                   <div className="flex flex-col gap-1">
-                    <span className="font-mono text-[10px] uppercase text-muted tracking-widest">Associated Firm</span>
+                    <span className="font-mono text-[10px] uppercase text-muted tracking-widest">Real Estate Firm</span>
                     <span className="font-bold text-charcoal">{profile?.landlordProfile?.firmName ?? 'Independent Agent'}</span>
                   </div>
                   <div className="flex flex-col gap-1">
-                    <span className="font-mono text-[10px] uppercase text-muted tracking-widest">Contact Email</span>
+                    <span className="font-mono text-[10px] uppercase text-muted tracking-widest">Primary Contact</span>
                     <span className="font-bold text-charcoal flex items-center gap-2">
                       <Mail size={14} className="text-muted" />
                       {profile?.email}
@@ -238,16 +265,20 @@ export default function AgentProfilePage() {
               </section>
             </div>
 
-            {/* Verification Section */}
+            {/* Verification Status */}
             <section className="bg-white rounded-card p-8 border border-outline-variant/30 shadow-sm">
               <div className="flex items-center justify-between mb-8 pb-4 border-b border-outline-variant/30">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-sand flex items-center justify-center text-terra">
                     <ShieldCheck size={20} />
                   </div>
-                  <h3 className="font-playfair text-xl font-bold">Verification Badges</h3>
+                  <h3 className="font-playfair text-xl font-bold">Verification Status</h3>
                 </div>
-                <button onClick={() => setActiveTab('verification')} className="text-xs font-bold text-terra hover:underline">Update docs</button>
+                {isNinVerified && profBodyApproved ? (
+                  <VerifiedBadge type="fully_verified" size="md" />
+                ) : (
+                  <span className="text-xs font-bold text-amber-600 bg-amber-50 px-3 py-1 rounded-full border border-amber-200">Action Required</span>
+                )}
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -262,7 +293,7 @@ export default function AgentProfilePage() {
                     <ShieldCheck size={24} />
                   </div>
                   <div>
-                    <p className={cn("font-bold text-sm", isNinVerified ? "text-success" : "text-charcoal")}>NIN Verified</p>
+                    <p className={cn("font-bold text-sm", isNinVerified ? "text-success" : "text-charcoal")}>Identity (NIN)</p>
                     <p className="text-[11px] text-muted mt-0.5">{isNinVerified ? 'Identity confirmed via NIMC' : 'Action required'}</p>
                   </div>
                 </div>
@@ -279,7 +310,7 @@ export default function AgentProfilePage() {
                   </div>
                   <div>
                     <p className={cn("font-bold text-sm", profBodyApproved ? "text-success" : "text-charcoal")}>Professional Body</p>
-                    <p className="text-[11px] text-muted mt-0.5">{profBodyApproved ? 'LASRERA/ESVARBON Verified' : 'Documents required'}</p>
+                    <p className="text-[11px] text-muted mt-0.5">{profBodyApproved ? `${activeProfBody?.type.toUpperCase()} Verified` : 'Documents required'}</p>
                   </div>
                 </div>
               </div>
@@ -287,13 +318,228 @@ export default function AgentProfilePage() {
           </div>
         )}
 
-        {activeTab !== 'overview' && (
-          <div className="flex flex-col items-center justify-center h-full text-center py-20">
-            <div className="w-20 h-20 rounded-full bg-sand flex items-center justify-center text-terra/30 mb-6">
-              <History size={40} />
+        {activeTab === 'listings' && (
+          <div className="space-y-8">
+            <header className="flex justify-between items-end">
+              <div>
+                <h1 className="font-playfair text-4xl font-bold text-charcoal mb-2">Manage Listings</h1>
+                <p className="text-muted leading-relaxed">You have {listingsData?.properties?.length ?? 0} active listings on the platform.</p>
+              </div>
+              <Button onClick={() => router.push('/agent/listings/create')} icon={<Plus size={18} />}>New Listing</Button>
+            </header>
+
+            {listingsLoading ? (
+              <div className="space-y-4">
+                {[1, 2, 3].map(i => <div key={i} className="h-24 bg-white rounded-card animate-pulse shadow-sm" />)}
+              </div>
+            ) : listingsData?.properties?.length === 0 ? (
+              <div className="bg-white border-2 border-dashed border-outline-variant/30 rounded-card p-20 text-center">
+                 <Building size={48} className="mx-auto text-muted/30 mb-4" />
+                 <h3 className="font-bold text-charcoal text-lg mb-2">No listings found</h3>
+                 <p className="text-muted mb-6">Create a listing to reach thousands of verified tenants.</p>
+                 <Button onClick={() => router.push('/agent/listings/create')}>Create Listing</Button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 gap-4">
+                {listingsData?.properties?.map((prop) => (
+                  <div key={prop.id} className="bg-white border border-outline-variant rounded-card p-4 flex gap-4 shadow-sm group hover:border-terra transition-all">
+                    <div className="w-24 h-24 rounded-xl bg-sand-warm overflow-hidden shrink-0 relative">
+                       {prop.images?.[0] ? (
+                         <img src={prop.images[0].url} alt="" className="w-full h-full object-cover" />
+                       ) : (
+                         <div className="w-full h-full bg-gradient-to-br from-terra/10 to-terra/5 flex items-center justify-center text-terra/20 font-playfair italic text-3xl">A</div>
+                       )}
+                       <div className="absolute top-1.5 left-1.5">
+                         <VerifiedBadge type={prop.verificationBadge as any} size="sm" />
+                       </div>
+                    </div>
+                    <div className="flex-1 min-w-0 flex flex-col justify-center">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h4 className="font-bold text-charcoal text-lg truncate mb-0.5">{prop.title}</h4>
+                          <p className="text-xs text-muted font-mono uppercase tracking-wider mb-2">{prop.lga} • {prop.type}</p>
+                        </div>
+                        <div className="font-playfair font-bold text-terra-dark text-lg">
+                          <KoboDisplay kobo={Number(prop.priceKobo)} size="sm" />
+                        </div>
+                      </div>
+                      
+                      <div className="flex gap-2 mt-auto">
+                        <Button variant="ghost" size="sm" onClick={() => router.push(`/agent/listings/${prop.id}/edit`)} icon={<Edit2 size={14} />}>Edit</Button>
+                        <Button variant="ghost" size="sm" className="text-red-500 hover:bg-red-50" onClick={() => handleDeleteProperty(prop.id)} icon={<Trash2 size={14} />}>Delete</Button>
+                        <Button variant="ghost" size="sm" onClick={() => router.push(`/property/${prop.id}`)} className="ml-auto">Preview <ExternalLink size={14} className="ml-1" /></Button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeTab === 'clients' && (
+          <div className="space-y-8">
+            <header>
+              <h1 className="font-playfair text-4xl font-bold text-charcoal mb-2">My Clients</h1>
+              <p className="text-muted leading-relaxed">Manage your relationships with tenants and track their escrows.</p>
+            </header>
+
+            {escrowsLoading ? (
+               <div className="space-y-4">
+                 {[1, 2, 3].map(i => <div key={i} className="h-24 bg-white rounded-card animate-pulse shadow-sm" />)}
+               </div>
+            ) : escrowsData?.items?.length === 0 ? (
+              <div className="bg-white border-2 border-dashed border-outline-variant/30 rounded-card p-20 text-center">
+                <Users size={48} className="mx-auto text-muted/30 mb-4" />
+                <h3 className="font-bold text-charcoal text-lg mb-2">No clients yet</h3>
+                <p className="text-muted">Clients will appear here when they initiate interest or payment for your listings.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {escrowsData?.items?.map((escrow) => (
+                  <div key={escrow.id} className="bg-white border border-outline-variant rounded-card p-5 shadow-sm hover:border-terra transition-colors cursor-pointer" onClick={() => router.push(`/agent/clients/${escrow.tenantId}`)}>
+                    <div className="flex items-center gap-4 mb-4">
+                      <div className="w-12 h-12 rounded-full bg-sand flex items-center justify-center text-muted">
+                        <User size={24} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-bold text-charcoal truncate">{escrow.tenant.firstName} {escrow.tenant.lastName}</h4>
+                        <p className="text-[10px] font-mono text-muted uppercase">Active Escrow • {escrow.property.title}</p>
+                      </div>
+                      <EscrowStatusChip status={escrow.status as EscrowStatus} />
+                    </div>
+                    <div className="flex justify-between items-center pt-4 border-t border-outline-variant/30">
+                       <Button variant="ghost" size="sm" className="px-0 h-auto font-bold text-terra">View Client Profile</Button>
+                       <span className="text-[10px] font-mono text-muted">Updated {new Date(escrow.createdAt).toLocaleDateString()}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeTab === 'verification' && (
+          <div className="space-y-8 max-w-2xl">
+            <header>
+              <h1 className="font-playfair text-4xl font-bold text-charcoal mb-2">Verification</h1>
+              <p className="text-muted leading-relaxed">Update your credentials to maintain your "Verified Agent" status.</p>
+            </header>
+
+            <section className="space-y-6">
+               <div className="bg-white rounded-card p-8 border border-outline-variant/30 shadow-sm space-y-6">
+                 <div className="flex items-center justify-between">
+                   <div className="flex items-center gap-4">
+                     <div className="w-12 h-12 rounded-full bg-success-bg flex items-center justify-center text-success shadow-sm">
+                       <ShieldCheck size={24} />
+                     </div>
+                     <div>
+                       <h3 className="font-bold text-charcoal">Identity Verification (NIN)</h3>
+                       <p className="text-xs text-muted">Verified on Oct 12, 2024</p>
+                     </div>
+                   </div>
+                   <VerifiedBadge type="nin_verified" size="sm" />
+                 </div>
+               </div>
+
+               <div className="bg-white rounded-card p-8 border border-outline-variant/30 shadow-sm space-y-6">
+                 <div className="flex items-center justify-between">
+                   <div className="flex items-center gap-4">
+                     <div className={cn(
+                       "w-12 h-12 rounded-full flex items-center justify-center shadow-sm",
+                       profBodyApproved ? "bg-success-bg text-success" : "bg-amber-50 text-amber-600"
+                     )}>
+                       <Briefcase size={24} />
+                     </div>
+                     <div>
+                       <h3 className="font-bold text-charcoal">Professional Body</h3>
+                       <p className="text-xs text-muted">
+                         {profBodyApproved ? `${activeProfBody?.type.toUpperCase()} Membership confirmed` : 'Action required: Upload your membership certificate'}
+                       </p>
+                     </div>
+                   </div>
+                   {profBodyApproved ? <VerifiedBadge type="agent_verified" body={activeProfBody?.type.toUpperCase()} size="sm" /> : <Button size="sm" onClick={() => router.push('/verify-agent')}>Verify Now</Button>}
+                 </div>
+               </div>
+            </section>
+          </div>
+        )}
+
+        {activeTab === 'notifications' && (
+          <div className="space-y-8">
+            <header className="flex justify-between items-end">
+              <div>
+                <h1 className="font-playfair text-4xl font-bold text-charcoal mb-2">Notifications</h1>
+                <p className="text-muted leading-relaxed">Stay updated on client activity and escrow updates.</p>
+              </div>
+              <Button variant="ghost" size="sm">Mark all as read</Button>
+            </header>
+
+            <div className="bg-white border border-outline-variant rounded-card overflow-hidden shadow-sm">
+              {notificationsData?.items && notificationsData.items.length > 0 ? (
+                notificationsData.items.map((n) => (
+                  <div key={n.id} className={cn(
+                    "p-5 flex gap-4 border-b border-outline-variant/30 last:border-0 hover:bg-sand/30 transition-colors",
+                    !n.isRead && "bg-terra/5 border-l-4 border-l-terra"
+                  )}>
+                    <div className="w-10 h-10 rounded-full bg-sand flex items-center justify-center text-muted shrink-0">
+                      <Bell size={20} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex justify-between items-start mb-1">
+                        <h4 className="font-bold text-charcoal text-sm">{n.title}</h4>
+                        <span className="text-[10px] font-mono text-muted uppercase">{new Date(n.createdAt).toLocaleDateString()}</span>
+                      </div>
+                      <p className="text-xs text-muted leading-relaxed">{n.body}</p>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="p-20 text-center text-muted text-sm">No notifications found.</div>
+              )}
             </div>
-            <h2 className="font-playfair text-2xl font-bold text-charcoal mb-2">{menuItems.find(i => i.id === activeTab)?.label}</h2>
-            <p className="text-muted max-w-sm">This section is being expanded into the new sidebar layout. Please check back shortly for detailed controls.</p>
+          </div>
+        )}
+
+        {activeTab === 'settings' && (
+          <div className="space-y-8 max-w-2xl">
+            <header>
+              <h1 className="font-playfair text-4xl font-bold text-charcoal mb-2">Account Settings</h1>
+              <p className="text-muted leading-relaxed">Manage your personal profile and account security.</p>
+            </header>
+
+            <section className="bg-white rounded-card p-8 border border-outline-variant/30 shadow-sm space-y-8">
+              <div className="flex items-center gap-6 pb-6 border-b border-outline-variant/30">
+                <div className="w-20 h-20 rounded-full bg-sand flex items-center justify-center text-terra relative group cursor-pointer overflow-hidden shadow-inner">
+                   {profile?.avatarUrl ? (
+                     <img src={profile.avatarUrl} alt="" className="w-full h-full object-cover" />
+                   ) : (
+                     <User size={32} />
+                   )}
+                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white transition-opacity">
+                     <Edit2 size={16} />
+                   </div>
+                </div>
+                <div>
+                   <h3 className="font-bold text-charcoal">Agent Avatar</h3>
+                   <p className="text-xs text-muted mt-1">High quality photos build more trust.</p>
+                   <div className="flex gap-3 mt-3">
+                     <button className="text-xs font-bold text-terra hover:underline">Upload new</button>
+                     <button className="text-xs font-bold text-red-500 hover:underline">Remove</button>
+                   </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <Input label="First Name" value={profile?.firstName ?? ''} onChangeValue={() => {}} />
+                <Input label="Last Name" value={profile?.lastName ?? ''} onChangeValue={() => {}} />
+              </div>
+              <Input label="Real Estate Agency" value={profile?.landlordProfile?.firmName ?? ''} onChangeValue={() => {}} />
+              <Input label="Email Address" value={profile?.email ?? ''} onChangeValue={() => {}} disabled />
+              <Input label="Mobile Number" value={profile?.phone ?? ''} onChangeValue={() => {}} />
+
+              <Button fullWidth size="lg">Save Changes</Button>
+            </section>
           </div>
         )}
       </ProfileSidebarLayout>
