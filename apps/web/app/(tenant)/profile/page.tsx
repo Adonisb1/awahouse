@@ -33,7 +33,7 @@ export default function ProfilePage() {
   const handleSignOut = async () => {
     await signOutMutation.mutateAsync();
     clearAuth();
-    router.push('/onboarding/role');
+    router.push('/role');
   };
 
   const handleSwitchRole = async (role: Role) => {

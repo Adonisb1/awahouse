@@ -107,7 +107,7 @@ export const agentRouter = router({
         firm: agent.landlordProfile?.firmName ?? null,
         avatarUrl: agent.avatarUrl,
         escrowCount: agent._count.escrowAsAgent,
-        rating: ratingAggs[i]._avg.rating ?? null,
+        rating: ratingAggs[i]!._avg.rating ?? null,
         isOnline: false,
         professionalBodies: profBodies.map(
           (b) => b.toUpperCase() as 'LASRERA' | 'ESVARBON' | 'NIESV' | 'AEAN' | 'ERCAAN' | 'REDAN',

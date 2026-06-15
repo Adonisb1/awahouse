@@ -56,6 +56,15 @@ export default function VerifyNinPage() {
           Your National Identification Number is required for all users.
         </p>
 
+        {!roles.includes('landlord') && !roles.includes('agent') && (
+          <button
+            onClick={() => router.push('/explore')}
+            className="mb-6 w-full text-center text-sm font-medium text-primary hover:underline"
+          >
+            Skip for now — browse properties
+          </button>
+        )}
+
         {(status === 'not_started' || !ninVerification) && (
           <Card>
             <CardContent className="pt-6 flex flex-col gap-4">

@@ -59,7 +59,7 @@ export default function AgentProfilePage() {
         <div className="space-y-2">
           <button
             className="flex w-full items-center gap-3 rounded-card bg-white px-4 py-3 text-left shadow-sm hover:bg-sand-warm transition-colors"
-            onClick={() => router.push('/onboarding/verify-nin')}
+            onClick={() => router.push('/verify-nin')}
           >
             <User className="h-5 w-5 text-charcoal/60" />
             <div>

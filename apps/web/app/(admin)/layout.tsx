@@ -6,8 +6,9 @@ import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils/cn';
 import {
   LayoutDashboard, ArrowLeftRight, ShieldCheck,
-  Menu, X, LogOut,
+  Menu, X,
 } from 'lucide-react';
+import { RoleSwitcher } from '@/components/ui/RoleSwitcher';
 
 const NAV_ITEMS = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -63,13 +64,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </nav>
 
         <div className="absolute bottom-0 left-0 right-0 p-3 border-t border-white/10">
-          <Link
-            href="/role"
-            className="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm text-white/40 hover:text-white/60 transition-colors"
-          >
-            <LogOut className="h-4 w-4" />
-            Switch Role
-          </Link>
+          {React.createElement(RoleSwitcher)}
         </div>
       </aside>
 

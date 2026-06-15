@@ -47,7 +47,7 @@ export default function AgentEscrowPage() {
                     </p>
                     <div className="flex items-center gap-2 mt-1">
                       <span className="text-xs text-charcoal/50">{escrow.property.lga}</span>
-                      <EscrowStatusChip status={escrow.status as any} size="sm" />
+                      <EscrowStatusChip status={escrow.status as any} />
                     </div>
                   </div>
                   <div className="text-right ml-4 shrink-0">

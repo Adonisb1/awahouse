@@ -16,7 +16,7 @@ export default function SplashPage() {
     }, 900);
 
     const redirectTimer = setTimeout(() => {
-      router.push('/onboarding/role');
+      router.push('/role');
     }, 3500);
 
     return () => {
@@ -71,7 +71,7 @@ export default function SplashPage() {
               variant="primary"
               size="lg"
               fullWidth
-              onClick={() => router.push('/onboarding/role')}
+              onClick={() => router.push('/role')}
             >
               Get Started →
             </Button>

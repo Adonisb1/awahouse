@@ -3,13 +3,14 @@
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Eye, EyeOff, ShieldCheck } from 'lucide-react';
+import { Eye, EyeOff, ShieldCheck, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import type { Role } from '@awahouse/types';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { trpc } from '@/lib/trpc/react';
 import { useAuthStore } from '@/hooks/useAuthStore';
+import { createAnonSupabaseClient } from '@/lib/auth/supabase';
 
 export default function AuthPage() {
   const router = useRouter();
@@ -30,7 +31,6 @@ export default function AuthPage() {
 
   const sendOtpMutation = trpc.auth.sendOtp.useMutation();
   const verifyOtpMutation = trpc.auth.verifyOtp.useMutation();
-  const googleSignInMutation = trpc.auth.signInWithGoogle.useMutation();
 
   const handleSendOtp = async () => {
     try {
@@ -68,7 +68,7 @@ export default function AuthPage() {
         if (result.activeRole === 'admin') {
           router.push('/dashboard');
         } else {
-          router.push('/onboarding/verify-nin');
+          router.push('/verify-nin');
         }
       }
     } catch (err: any) {
@@ -76,23 +76,32 @@ export default function AuthPage() {
     }
   };
 
+  const [googleLoading, setGoogleLoading] = React.useState(false);
+
   const handleGoogleSignIn = async () => {
     try {
-      const result = await googleSignInMutation.mutateAsync({
-        idToken: 'stub-google-token',
-        role: pendingRole as 'tenant' | 'landlord' | 'agent' ?? 'tenant',
+      setGoogleLoading(true);
+      setError('');
+      const supabase = createAnonSupabaseClient();
+      if (!supabase) {
+        setError('Google sign-in is currently unavailable');
+        setGoogleLoading(false);
+        return;
+      }
+      const role = (pendingRole as 'tenant' | 'landlord' | 'agent') ?? 'tenant';
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback?role=${role}`,
+        },
       });
-
-      if (result.success) {
-        setAuth({
-          userId: result.userId,
-          roles: result.roles as Role[],
-          activeRole: result.activeRole as Role,
-        });
-        router.push('/onboarding/verify-nin');
+      if (error) {
+        setError(error.message);
+        setGoogleLoading(false);
       }
     } catch (err: any) {
       setError(err?.message ?? 'Google sign-in failed');
+      setGoogleLoading(false);
     }
   };
 
@@ -227,7 +236,7 @@ export default function AuthPage() {
                     variant="ghost"
                     size="lg"
                     fullWidth
-                    loading={googleSignInMutation.isPending}
+                    loading={googleLoading}
                     onClick={handleGoogleSignIn}
                     className="bg-white border border-outline-variant text-charcoal hover:bg-gray-50"
                     icon={

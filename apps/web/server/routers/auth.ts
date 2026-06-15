@@ -158,7 +158,10 @@ export const authRouter = router({
         return { success: true, userId: dbUser.id, roles: dbUser.roles, activeRole: dbUser.activeRole };
       }
 
-      return { success: true, userId: 'stub-google-user-id', roles: ['tenant'], activeRole: 'tenant' };
+      throw new TRPCError({
+        code: 'INTERNAL_SERVER_ERROR',
+        message: 'Google sign-in is not configured. Please use email/OTP instead.',
+      });
     }),
 
   switchRole: authedProcedure
