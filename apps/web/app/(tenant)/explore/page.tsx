@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { Search, Settings2, Bell, User as UserIcon, ShieldCheck } from 'lucide-react';
+import { Search, Settings2, User as UserIcon, ShieldCheck } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import { TopNav } from '@/components/layout/TopNav';
 import { BottomNav } from '@/components/layout/BottomNav';
@@ -12,7 +12,6 @@ import { AgentCard } from '@/components/agents/AgentCard';
 import { VerifiedBadge } from '@/components/ui/VerifiedBadge';
 import { trpc } from '@/lib/trpc/react';
 import { useAuthStore } from '@/hooks/useAuthStore';
-import { mockAgents } from '@/lib/mock';
 
 const filterChips = [
   'All Verified',
@@ -34,7 +33,9 @@ export default function ExplorePage() {
   const { data: searchResult, isLoading } = trpc.properties.search.useQuery({
     query: search.length > 2 ? search : undefined,
   });
+  const { data: agentsData, isLoading: agentsLoading } = trpc.agent.listVerified.useQuery();
   const properties = searchResult?.properties ?? [];
+  const agents = agentsData ?? [];
 
   return (
     <div className="flex flex-col min-h-screen bg-sand pb-[80px]">
@@ -186,13 +187,30 @@ export default function ExplorePage() {
             <button className="text-terra font-bold text-xs">View all</button>
           </div>
           <div className="space-y-3">
-            {mockAgents.slice(0, 3).map((agent) => (
-              <AgentCard
-                key={agent.id}
-                {...agent}
-                onMessage={() => {}}
-              />
-            ))}
+            {agentsLoading ? (
+              [1, 2, 3].map((i) => (
+                <div key={i} className="h-[72px] bg-white rounded-card animate-pulse shadow-sm" />
+              ))
+            ) : agents.length > 0 ? (
+              agents.slice(0, 3).map((agent) => (
+                <AgentCard
+                  key={agent.id}
+                  id={agent.id}
+                  name={agent.name}
+                  firm={agent.firm}
+                  avatarUrl={agent.avatarUrl}
+                  escrowCount={agent.escrowCount}
+                  rating={agent.rating}
+                  isOnline={agent.isOnline}
+                  professionalBodies={agent.professionalBodies}
+                  onMessage={() => {}}
+                />
+              ))
+            ) : (
+              <div className="bg-white border border-outline-variant rounded-card p-8 text-center text-muted text-sm">
+                No verified agents found.
+              </div>
+            )}
           </div>
         </section>
       </div>
