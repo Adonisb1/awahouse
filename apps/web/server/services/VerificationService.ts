@@ -16,7 +16,7 @@ const PROFESSIONAL_BODIES: VerificationType[] = [
 ];
 
 export class VerificationService {
-  async submitNin(userId: string, nin: string, faceImageBase64?: string) {
+  async submitNin(userId: string, nin: string) {
     const ninHash = await bcrypt.hash(nin, BCRYPT_COST);
 
     const existingVerification = await prisma.verification.findUnique({

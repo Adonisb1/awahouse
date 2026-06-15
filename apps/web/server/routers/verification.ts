@@ -11,7 +11,6 @@ export const verificationRouter = router({
       const verification = await verificationService.submitNin(
         ctx.userId!,
         input.nin,
-        input.faceImageBase64,
       );
       return { success: true, status: verification.status, id: verification.id };
     }),

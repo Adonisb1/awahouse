@@ -12,7 +12,6 @@ export const submitNinInput = z.object({
     .string()
     .length(11, 'NIN must be exactly 11 characters')
     .regex(/^[0-9]+$/, 'NIN must contain only digits'),
-  faceImageBase64: z.string().optional(),
 });
 
 export const checkStatusInput = z.object({
