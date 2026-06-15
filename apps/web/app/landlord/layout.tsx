@@ -14,7 +14,7 @@ export default function LandlordLayout({ children }: { children: React.ReactNode
 
   useEffect(() => {
     if (!isAuthenticated) {
-      router.replace('/login');
+      router.replace('/role');
       return;
     }
     if (activeRole !== 'landlord') {

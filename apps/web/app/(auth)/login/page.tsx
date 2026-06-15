@@ -64,7 +64,7 @@ function LoginForm() {
     }
     setError('');
     try {
-      await sendOtpMutation.mutateAsync({ email, role });
+      await sendOtpMutation.mutateAsync({ email, role, intent: 'login' });
       setStep('otp');
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Failed to send code');
