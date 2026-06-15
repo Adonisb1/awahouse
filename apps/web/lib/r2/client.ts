@@ -38,8 +38,7 @@ export async function uploadFile(
     }
   }
 
-  console.log(`[STUB R2] Uploaded: ${key} (${contentType})`);
-  return key;
+  throw new Error('R2 is not configured. Set R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET_NAME, and R2_ACCOUNT_ID.');
 }
 
 export async function getSignedUrl(key: string): Promise<string | null> {
@@ -67,10 +66,5 @@ export async function getSignedUrl(key: string): Promise<string | null> {
     }
   }
 
-  const publicUrl = process.env.NEXT_PUBLIC_R2_PUBLIC_URL;
-  if (publicUrl) {
-    return `${publicUrl}/${key}`;
-  }
-
-  return `https://r2-stub.local/${key}`;
+  throw new Error('R2 is not configured. Cannot generate signed URL.');
 }

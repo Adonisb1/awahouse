@@ -58,7 +58,7 @@ class MonnifyClient {
     }
 
     if (!this.isConfigured()) {
-      return 'stub_token';
+      throw new Error('Monnify is not configured. Set MONNIFY_API_KEY, MONNIFY_SECRET_KEY, and MONNIFY_CONTRACT_CODE.');
     }
 
     const credentials = Buffer.from(`${this.apiKey}:${this.secretKey}`).toString('base64');
@@ -86,30 +86,7 @@ class MonnifyClient {
 
   private async request<T>(path: string, body: Record<string, unknown>): Promise<T> {
     if (!this.isConfigured()) {
-      if (path === '/api/v1/merchant/transactions/init-transaction') {
-        const stubRef = `MNFY|STUB|${Date.now()}`;
-        return {
-          requestSuccessful: true,
-          responseBody: {
-            transactionReference: stubRef,
-            paymentReference: body.paymentReference as string,
-            checkoutUrl: `https://sandbox.monnify.com/checkout/stub/${stubRef}`,
-          },
-        } as T;
-      }
-      if (path === '/api/v1/merchant/transactions/query') {
-        return {
-          requestSuccessful: true,
-          responseBody: { paymentStatus: 'PAID', amount: 0 },
-        } as T;
-      }
-      if (path === '/api/v1/disbursements/single') {
-        return {
-          requestSuccessful: true,
-          responseBody: { reference: body.reference as string },
-        } as T;
-      }
-      return { requestSuccessful: true } as T;
+      throw new Error('Monnify is not configured. Set MONNIFY_API_KEY, MONNIFY_SECRET_KEY, and MONNIFY_CONTRACT_CODE.');
     }
 
     const token = await this.authenticate();

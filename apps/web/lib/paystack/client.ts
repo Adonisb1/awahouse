@@ -30,12 +30,7 @@ class PaystackClient {
     callbackUrl?: string,
   ): Promise<ChargeResponse> {
     if (!process.env.PAYSTACK_SECRET_KEY) {
-      return {
-        success: true,
-        accessCode: 'stub_access_code',
-        reference,
-        authorizationUrl: `https://checkout.paystack.com/stub/${reference}`,
-      };
+      throw new Error('Paystack is not configured. Set PAYSTACK_SECRET_KEY.');
     }
 
     const response = await fetch('https://api.paystack.co/transaction/initialize', {
@@ -67,7 +62,7 @@ class PaystackClient {
     reference: string,
   ): Promise<TransferResponse> {
     if (!process.env.PAYSTACK_SECRET_KEY) {
-      return { success: true, transferCode: 'stub_transfer', reference };
+      throw new Error('Paystack is not configured. Set PAYSTACK_SECRET_KEY.');
     }
 
     const response = await fetch('https://api.paystack.co/transfer', {
@@ -97,7 +92,7 @@ class PaystackClient {
     bankCode: string,
   ): Promise<TransferRecipientResponse> {
     if (!process.env.PAYSTACK_SECRET_KEY) {
-      return { success: true, recipientCode: 'stub_recipient' };
+      throw new Error('Paystack is not configured. Set PAYSTACK_SECRET_KEY.');
     }
 
     const response = await fetch('https://api.paystack.co/transferrecipient', {
@@ -124,7 +119,7 @@ class PaystackClient {
 
   async verifyTransaction(reference: string): Promise<VerifyResponse> {
     if (!process.env.PAYSTACK_SECRET_KEY) {
-      return { success: true, status: 'success', amount: 0n };
+      throw new Error('Paystack is not configured. Set PAYSTACK_SECRET_KEY.');
     }
 
     const response = await fetch(`https://api.paystack.co/transaction/verify/${reference}`, {

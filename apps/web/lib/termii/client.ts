@@ -9,7 +9,7 @@ class TermiiClient {
     }
 
     if (!process.env.TERMII_API_KEY) {
-      return { success: true, messageId: 'stub_message_id' };
+      throw new Error('Termii is not configured. Set TERMII_API_KEY.');
     }
 
     const response = await fetch('https://api.ng.termii.com/api/sms/send', {

@@ -63,14 +63,5 @@ export async function verifyNin(
     return { success: false, message: data.error?.message ?? data.message ?? 'NIN not found' };
   }
 
-  console.log(`[STUB] Dojah NIN lookup for ${nin}: found`);
-  return {
-    success: true,
-    message: 'Identity verified (stub)',
-    entity: {
-      nin,
-      firstName: 'Demo',
-      lastName: 'User',
-    },
-  };
+  throw new Error('Dojah is not configured. Set DOJAH_APP_ID and DOJAH_API_KEY.');
 }
