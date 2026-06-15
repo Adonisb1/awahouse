@@ -9,6 +9,7 @@ import { KoboDisplay } from '@/components/ui/KoboDisplay';
 import { EscrowStatusChip } from '@/components/escrow/EscrowStatusChip';
 import { Button } from '@/components/ui/Button';
 import { NotificationBell } from '@/components/layout/NotificationBell';
+import { VerificationBanner } from '@/components/dashboard/VerificationBanner';
 import { trpc } from '@/lib/trpc/react';
 
 export function AgentDashboardView() {
@@ -20,6 +21,7 @@ export function AgentDashboardView() {
   const { data: result, isLoading: listingsLoading } = trpc.properties.listMyProperties.useQuery();
   const { data: escrowsData } = trpc.escrow.list.useQuery({ limit: 10 });
   const { data: profile } = trpc.auth.getProfile.useQuery();
+  const { data: verifications } = trpc.verification.checkStatus.useQuery();
 
   const properties = result?.properties ?? [];
   const escrows = escrowsData?.items ?? [];
@@ -41,6 +43,11 @@ export function AgentDashboardView() {
     ? `${profile.firstName} ${profile.lastName ?? ''}`
     : 'Agent';
 
+  const hasNinApproved = verifications?.verifications?.some(
+    (v: { type: string; status: string }) => v.type === 'nin' && v.status === 'approved',
+  );
+  const verificationStatus = hasNinApproved ? 'verified' : 'pending';
+
   return (
     <div className="flex flex-col min-h-screen bg-sand">
       <TopNav
@@ -61,6 +68,8 @@ export function AgentDashboardView() {
             {error}
           </div>
         )}
+
+        <VerificationBanner status={verificationStatus} />
 
         <div className="mb-8">
           <p className="text-[13px] text-muted mb-1">Good morning</p>
