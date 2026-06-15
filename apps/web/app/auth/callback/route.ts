@@ -16,7 +16,7 @@ export async function GET(request: Request) {
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
   if (!supabaseUrl || !supabaseAnonKey) {
-    return NextResponse.redirect(`${origin}/onboarding/signup?error=supabase_not_configured`);
+    return NextResponse.redirect(`${origin}/signup?error=supabase_not_configured`);
   }
 
   const cookieStore = await cookies();
@@ -32,12 +32,12 @@ export async function GET(request: Request) {
 
   const { error } = await supabase.auth.exchangeCodeForSession(code);
   if (error) {
-    return NextResponse.redirect(`${origin}/onboarding/signup?error=auth_failed`);
+    return NextResponse.redirect(`${origin}/signup?error=auth_failed`);
   }
 
   const { data: { user } } = await supabase.auth.getUser();
   if (!user?.email) {
-    return NextResponse.redirect(`${origin}/onboarding/signup?error=no_email`);
+    return NextResponse.redirect(`${origin}/signup?error=no_email`);
   }
 
   const existingUser = await prisma.user.findUnique({ where: { id: user.id } });

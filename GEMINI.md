@@ -463,7 +463,7 @@ export const mockEscrowTransactions = [
 ---
 
 ### Screen 04 — NIN Verification
-**File:** `app/onboarding/verify-nin/page.tsx`
+**File:** `app/(auth)/verify-nin/page.tsx`
 **Layout:** bg-sand, TopNav variant=back title="Identity Verification"
 ```
 ┌─────────────────────────────┐

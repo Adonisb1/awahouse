@@ -1,7 +1,8 @@
 'use client';
 
 import * as React from 'react';
-import { useRouter } from 'next/navigation';
+import { Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Eye, EyeOff, ShieldCheck, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
@@ -12,11 +13,13 @@ import { trpc } from '@/lib/trpc/react';
 import { useAuthStore } from '@/hooks/useAuthStore';
 import { createAnonSupabaseClient } from '@/lib/auth/supabase';
 
-export default function AuthPage() {
+function AuthPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const pendingRole = useAuthStore((s) => s.pendingRole);
   const setAuth = useAuthStore((s) => s.setAuth);
 
+  const urlError = searchParams.get('error');
   const [activeTab, setActiveTab] = React.useState<'signup' | 'login'>('signup');
   const [showPassword, setShowPassword] = React.useState(false);
   const [stage, setStage] = React.useState<'details' | 'otp'>('details');
@@ -161,9 +164,9 @@ export default function AuthPage() {
                     : "Continue your journey to a verified home."}
                 </p>
 
-                {error && (
+                {(error || urlError) && (
                   <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl px-4 py-3 mb-6">
-                    {error}
+                    {error || (urlError === 'auth_failed' ? 'Google sign-in failed. Please try again.' : urlError === 'no_email' ? 'No email returned from Google.' : urlError === 'supabase_not_configured' ? 'Google sign-in is not configured.' : 'Something went wrong.')}
                   </div>
                 )}
 
@@ -320,6 +323,14 @@ export default function AuthPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function SignupPage() {
+  return (
+    <Suspense fallback={null}>
+      <AuthPage />
+    </Suspense>
   );
 }
 
