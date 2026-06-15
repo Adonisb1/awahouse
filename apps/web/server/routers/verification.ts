@@ -1,4 +1,5 @@
-import { TRPCError } from '@trpc/server';
+import { z } from 'zod';
+import { prisma } from '@awahouse/db';
 import { router, authedProcedure, adminProcedure } from '../trpc';
 import { submitNinInput, checkStatusInput, uploadDocumentInput, adminReviewInput } from '../schemas/verification';
 import { verificationService } from '../services/VerificationService';
@@ -33,6 +34,21 @@ export const verificationRouter = router({
         input.fileBase64,
       );
       return { success: true, documentUrl: verification.documentUrl ?? '', id: verification.id };
+    }),
+
+  submitProfessionalBody: authedProcedure
+    .input(z.object({ body: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const verification = await prisma.verification.upsert({
+        where: { userId_type: { userId: ctx.userId!, type: input.body as any } },
+        update: { status: 'pending' },
+        create: {
+          userId: ctx.userId!,
+          type: input.body as any,
+          status: 'pending',
+        },
+      });
+      return { success: true, id: verification.id };
     }),
 
   adminReview: adminProcedure

@@ -6,7 +6,9 @@ import { Shield, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
+import { TopNav } from '@/components/layout/TopNav';
 import { cn } from '@/lib/utils/cn';
+import { trpc } from '@/lib/trpc/react';
 
 const professionalBodies = [
   { id: 'lasrera', name: 'LASRERA', description: 'Lagos State Real Estate Regulatory Authority', recommended: true },
@@ -17,21 +19,21 @@ const professionalBodies = [
   { id: 'redan', name: 'REDAN', description: 'Real Estate Developers Association of Nigeria' },
 ] as const;
 
-type SubmitStatus = 'idle' | 'submitting' | 'done';
-
 export default function VerifyAgentPage() {
   const router = useRouter();
   const [selected, setSelected] = useState<string | null>(null);
-  const [status, setStatus] = useState<SubmitStatus>('idle');
+  const [done, setDone] = useState(false);
+
+  const mutation = trpc.verification.submitProfessionalBody.useMutation({
+    onSuccess: () => setDone(true),
+  });
 
   async function handleSubmit() {
     if (!selected) return;
-    setStatus('submitting');
-    await new Promise((r) => setTimeout(r, 1500));
-    setStatus('done');
+    mutation.mutate({ body: selected });
   }
 
-  if (status === 'done') {
+  if (done) {
     return (
       <main className="flex min-h-screen flex-col items-center justify-center bg-surface p-6">
         <CheckCircle className="h-16 w-16 text-success mb-4" />
@@ -50,7 +52,9 @@ export default function VerifyAgentPage() {
 
   return (
     <main className="min-h-screen bg-surface p-6">
-      <div className="mx-auto max-w-md">
+      <TopNav variant="back" title="Verify Agent" onBack={() => router.back()} />
+
+      <div className="mx-auto max-w-md pt-4">
         <div className="flex items-center gap-3 mb-2">
           <Shield className="h-6 w-6 text-primary" />
           <h1 className="font-display text-3xl italic font-black text-charcoal">
@@ -60,6 +64,12 @@ export default function VerifyAgentPage() {
         <p className="font-body text-charcoal/60 mb-8">
           Select your professional real estate body. Only one is required.
         </p>
+
+        {mutation.error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl px-4 py-3 mb-6">
+            {mutation.error.message}
+          </div>
+        )}
 
         <div className="flex flex-col gap-3">
           {professionalBodies.map((body) => (
@@ -108,10 +118,10 @@ export default function VerifyAgentPage() {
 
         <Button
           onClick={handleSubmit}
-          disabled={!selected || status === 'submitting'}
+          disabled={!selected || mutation.isPending}
           className="mt-8 w-full"
         >
-          {status === 'submitting' ? 'Submitting...' : 'Submit for verification'}
+          {mutation.isPending ? 'Submitting...' : 'Submit for verification'}
         </Button>
       </div>
     </main>
