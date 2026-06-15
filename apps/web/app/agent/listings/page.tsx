@@ -62,7 +62,7 @@ export default function AgentListingsPage() {
                     </Badge>
                     <button
                       className="p-2 text-charcoal/40 hover:text-primary transition-colors"
-                      onClick={() => router.push(`/landlord/listings/${listing.id}/edit`)}
+                      onClick={() => router.push(`/agent/listings/${listing.id}/edit`)}
                     >
                       <Edit2 className="h-4 w-4" />
                     </button>
