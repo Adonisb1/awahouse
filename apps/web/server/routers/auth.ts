@@ -40,6 +40,12 @@ export const authRouter = router({
 
       const code = createOtp(input.email);
 
+      if (process.env.NODE_ENV === 'development') {
+        console.log('═══════════════════════════════════════');
+        console.log(`  🔑 [DEV ONLY] OTP for ${input.email}: ${code}`);
+        console.log('═══════════════════════════════════════');
+      }
+
       const supabase = createServerSupabaseClient();
       if (supabase) {
         const { error } = await supabase.auth.signInWithOtp({
