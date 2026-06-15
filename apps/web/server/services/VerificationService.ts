@@ -2,6 +2,8 @@ import { TRPCError } from '@trpc/server';
 import bcrypt from 'bcryptjs';
 import { prisma } from '@awahouse/db';
 import { verifyNin } from '@/lib/dojah/client';
+import { uploadFile, getSignedUrl } from '@/lib/r2/client';
+import { notificationService } from './NotificationService';
 import type { VerificationType } from '@awahouse/types';
 
 const BCRYPT_COST = 12;
@@ -37,7 +39,13 @@ export class VerificationService {
       });
     }
 
-    const result = await verifyNin(nin);
+    let result;
+    if (process.env.NODE_ENV === 'development' && nin === '00000000000') {
+      console.log('🛡 [DEV ONLY] NIN Verification Bypassed for testing');
+      result = { success: true, message: 'Developer Bypass', entity: { firstName: 'Test', lastName: 'User' } };
+    } else {
+      result = await verifyNin(nin);
+    }
 
     const status = result.success ? 'approved' : 'pending';
 
@@ -77,7 +85,14 @@ export class VerificationService {
     fileType: string,
     fileBase64: string,
   ) {
-    const documentUrl = `verifications/${userId}/${type}/${Date.now()}.${fileType.split('/')[1] ?? 'bin'}`;
+    const ext = fileType.split('/')[1] ?? 'bin';
+    const key = `verifications/${userId}/${type}/${Date.now()}.${ext}`;
+
+    const buffer = Buffer.from(fileBase64, 'base64');
+    await uploadFile(key, buffer, fileType);
+
+    const signedUrl = await getSignedUrl(key);
+    const documentUrl = signedUrl ?? key;
 
     const verification = await prisma.verification.upsert({
       where: { userId_type: { userId, type } },
@@ -115,6 +130,16 @@ export class VerificationService {
         },
       },
     });
+
+    const isApproved = status === 'approved';
+    await notificationService.sendInApp(
+      verification.userId,
+      isApproved ? 'Verification Approved' : 'Verification Rejected',
+      isApproved
+        ? `Your ${verification.type.replace(/_/g, ' ')} has been approved. You can now create listings.`
+        : `Your ${verification.type.replace(/_/g, ' ')} was rejected.${reason ? ` Reason: ${reason}` : ''}`,
+      isApproved ? '/explore' : '/verify-agent',
+    );
 
     return updated;
   }
