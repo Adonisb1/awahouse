@@ -3,22 +3,51 @@
 import * as React from 'react';
 import { Card, CardContent } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
 import { trpc } from '@/lib/trpc/react';
 
 const STATUS_TABS = [
-  { label: 'All', value: undefined },
+  { label: 'All', value: undefined as string | undefined },
   { label: 'Pending', value: 'pending' as const },
   { label: 'Approved', value: 'approved' as const },
   { label: 'Rejected', value: 'rejected' as const },
 ];
 
+type ActionTarget = { id: string; type: string; userName: string } | null;
+
 export default function AdminVerificationsPage() {
   const [statusFilter, setStatusFilter] = React.useState<string | undefined>(undefined);
+  const [actionTarget, setActionTarget] = React.useState<ActionTarget>(null);
+  const [rejectReason, setRejectReason] = React.useState('');
+  const utils = trpc.useUtils();
 
   const { data, isLoading } = trpc.admin.listVerifications.useQuery({
     status: statusFilter as 'pending' | 'approved' | 'rejected' | undefined,
     limit: 50,
   });
+
+  const reviewMutation = trpc.verification.adminReview.useMutation({
+    onSuccess: () => {
+      setActionTarget(null);
+      setRejectReason('');
+      utils.admin.listVerifications.invalidate();
+    },
+  });
+
+  const handleApprove = (target: ActionTarget) => {
+    if (!target) return;
+    reviewMutation.mutate({ verificationId: target.id, status: 'approved' });
+  };
+
+  const handleReject = () => {
+    if (!actionTarget) return;
+    reviewMutation.mutate({
+      verificationId: actionTarget.id,
+      status: 'rejected',
+      reason: rejectReason || undefined,
+    });
+  };
 
   return (
     <div>
@@ -95,16 +124,42 @@ export default function AdminVerificationsPage() {
                         })}
                       </td>
                       <td className="py-3">
-                        {v.status === 'pending' && v.documentUrl && (
-                          <a
-                            href={v.documentUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-sm text-terra-dark hover:underline font-medium"
-                          >
-                            View Doc
-                          </a>
-                        )}
+                        <div className="flex items-center gap-2">
+                          {v.status === 'pending' && v.documentUrl && (
+                            <a
+                              href={v.documentUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-sm text-terra-dark hover:underline font-medium"
+                            >
+                              View Doc
+                            </a>
+                          )}
+                          {v.status === 'pending' && (
+                            <div className="flex gap-1 ml-2">
+                              <Button
+                                size="sm"
+                                onClick={() => setActionTarget({ id: v.id, type: v.type, userName: v.user.firstName ?? '' })}
+                                disabled={reviewMutation.isPending}
+                              >
+                                Approve
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="secondary"
+                                onClick={() => setActionTarget({ id: v.id, type: v.type, userName: v.user.firstName ?? '' })}
+                                disabled={reviewMutation.isPending}
+                              >
+                                Reject
+                              </Button>
+                            </div>
+                          )}
+                          {v.status !== 'pending' && v.metadata && typeof v.metadata === 'object' && 'reviewReason' in v.metadata && v.metadata.reviewReason && (
+                            <span className="text-xs text-charcoal/40 italic ml-2">
+                              {String(v.metadata.reviewReason)}
+                            </span>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -114,6 +169,52 @@ export default function AdminVerificationsPage() {
           )}
         </CardContent>
       </Card>
+
+      {actionTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setActionTarget(null)}>
+          <div className="bg-white rounded-xl p-6 w-full max-w-md mx-4 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <h3 className="font-display text-lg font-bold text-charcoal mb-1">
+              Review Verification
+            </h3>
+            <p className="text-sm text-charcoal/60 mb-2">
+              <span className="font-medium capitalize">{actionTarget.type.replace(/_/g, ' ')}</span> &mdash; {actionTarget.userName}
+            </p>
+
+            <div className="flex flex-col gap-3 mt-4">
+              <Button
+                onClick={() => handleApprove(actionTarget)}
+                loading={reviewMutation.isPending}
+              >
+                Approve
+              </Button>
+
+              <div className="border-t border-gray-100 pt-3">
+                <Input
+                  label="Rejection reason (optional)"
+                  placeholder="E.g. Expired certificate, name mismatch..."
+                  value={rejectReason}
+                  onChangeValue={setRejectReason}
+                />
+                <Button
+                  variant="secondary"
+                  className="w-full mt-2"
+                  onClick={handleReject}
+                  loading={reviewMutation.isPending}
+                >
+                  Reject{rejectReason ? ' with reason' : ''}
+                </Button>
+              </div>
+
+              <button
+                onClick={() => { setActionTarget(null); setRejectReason(''); }}
+                className="text-sm text-charcoal/40 hover:text-charcoal/60 text-center mt-1"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
