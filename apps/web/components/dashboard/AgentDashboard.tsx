@@ -147,7 +147,14 @@ export function AgentDashboardView() {
               </div>
             )}
 
-            <h3 className="font-display text-lg font-bold text-charcoal">Recent Clients</h3>
+            <div className="flex items-center justify-between">
+              <h3 className="font-display text-lg font-bold text-charcoal">Recent Clients</h3>
+              {recentCompleted.length > 0 && (
+                <Button size="sm" variant="ghost" onClick={() => router.push('/agent/clients')}>
+                  View all <ArrowRight className="h-3 w-3 ml-1" />
+                </Button>
+              )}
+            </div>
             {recentCompleted.length > 0 ? (
               <div className="space-y-3">
                 {recentCompleted.slice(0, 3).map((e) => (
