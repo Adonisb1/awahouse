@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/Button';
 import { NotificationBell } from '@/components/layout/NotificationBell';
 import { trpc } from '@/lib/trpc/react';
 import { VerificationBanner } from '@/components/dashboard/VerificationBanner';
+import Link from 'next/link';
 
 export function LandlordDashboardView() {
   const router = useRouter();
@@ -46,9 +47,12 @@ export function LandlordDashboardView() {
         actions={
           <div className="flex items-center gap-3">
             <NotificationBell />
-            <div className="w-8 h-8 rounded-full bg-terra/10 flex items-center justify-center">
+            <Link 
+              href="/landlord/profile"
+              className="w-8 h-8 rounded-full bg-terra/10 flex items-center justify-center hover:bg-terra/20 transition-colors"
+            >
               <UserIcon size={16} className="text-terra-dark" />
-            </div>
+            </Link>
           </div>
         }
       />

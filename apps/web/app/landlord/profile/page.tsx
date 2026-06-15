@@ -1,91 +1,209 @@
 'use client';
 
+import * as React from 'react';
 import { useRouter } from 'next/navigation';
-import { User, Settings, LogOut, Mail, Phone } from 'lucide-react';
+import { 
+  User, 
+  ShieldCheck, 
+  ChevronRight, 
+  LogOut, 
+  Settings, 
+  Bell, 
+  Building,
+  UserCheck,
+  Briefcase,
+  Wallet
+} from 'lucide-react';
+import { cn } from '@/lib/utils/cn';
 import { TopNav } from '@/components/layout/TopNav';
+import { BottomNav, type UserRole } from '@/components/layout/BottomNav';
+import { Button } from '@/components/ui/Button';
+import { VerifiedBadge } from '@/components/ui/VerifiedBadge';
+import { useAuthStore, type Role } from '@/hooks/useAuthStore';
 import { trpc } from '@/lib/trpc/react';
+import { NotificationBell } from '@/components/layout/NotificationBell';
+import Link from 'next/link';
 
 export default function LandlordProfilePage() {
   const router = useRouter();
-  const utils = trpc.useUtils();
-  const { data: profile, isLoading } = trpc.auth.getProfile.useQuery();
-  const signOutMutation = trpc.auth.signOut.useMutation({
-    onSuccess: () => {
-      localStorage.removeItem('awahouse-auth');
-      utils.invalidate();
-      router.push('/login');
-    },
-  });
+  const [error, setError] = React.useState('');
+  const { userId, roles, activeRole, setActiveRole, clearAuth } = useAuthStore();
+
+  const { data: profile, isLoading: profileLoading } = trpc.auth.getProfile.useQuery();
+  const { data: verifData } = trpc.verification.checkStatus.useQuery();
+  const switchRoleMutation = trpc.auth.switchRole.useMutation();
+  const signOutMutation = trpc.auth.signOut.useMutation();
+
+  const handleSignOut = async () => {
+    try {
+      await signOutMutation.mutateAsync();
+      clearAuth();
+      router.push('/role');
+    } catch (err) {
+      // Fallback for dev if mutation fails
+      clearAuth();
+      router.push('/role');
+    }
+  };
+
+  const handleSwitchRole = async (role: Role) => {
+    if (role === activeRole) return;
+    try {
+      await switchRoleMutation.mutateAsync({ role });
+      setActiveRole(role);
+      router.push(role === 'tenant' ? '/explore' : role === 'agent' ? '/agent' : '/landlord');
+    } catch (err: any) {
+      setError(err?.message ?? 'Failed to switch role');
+    }
+  };
+
+  const verifications = verifData?.verifications ?? [];
+  const isNinVerified = verifications.some(v => v.type === 'nin' && v.status === 'approved');
+
+  const menuItems = [
+    { icon: Building, label: 'My Listings', href: '/landlord/listings' },
+    { icon: ShieldCheck, label: 'My Escrows', href: '/landlord/escrow' },
+    { icon: Bell, label: 'Notifications', href: '/notifications' },
+    { icon: Wallet, label: 'Payout Settings', href: '/landlord/settings' },
+    { icon: Settings, label: 'Account Settings', href: '/landlord/settings' },
+  ];
 
   return (
-    <div className="flex flex-col min-h-screen bg-sand">
-      <TopNav variant="back" title="Profile" onBack={() => router.push('/landlord')} />
+    <div className="flex flex-col min-h-screen bg-sand pb-[80px]">
+      <TopNav 
+        variant="brand" 
+        actions={
+          <div className="flex gap-2">
+            <NotificationBell />
+            <Link 
+              href="/landlord/profile"
+              className="w-10 h-10 rounded-full bg-white border border-outline-variant flex items-center justify-center text-muted active:scale-95 transition-transform"
+            >
+              <User size={20} />
+            </Link>
+          </div>
+        }
+      />
 
-      <div className="flex-1 px-4 py-6">
-        {isLoading ? (
-          <div className="space-y-4">
-            <div className="flex flex-col items-center mb-10">
-              <div className="mb-3 h-20 w-20 rounded-full bg-gray-200 animate-pulse" />
-              <div className="h-6 w-32 bg-gray-200 rounded animate-pulse" />
-              <div className="h-4 w-48 bg-gray-200 rounded animate-pulse mt-2" />
+      <div className="flex-1 overflow-y-auto px-4 py-8">
+        {/* User Header */}
+        <section className="flex flex-col items-center mb-10">
+          <div className="w-24 h-24 rounded-full bg-white border-2 border-terra-light/20 flex items-center justify-center text-terra mb-4 relative shadow-sm overflow-hidden">
+            {profile?.avatarUrl ? (
+              <img src={profile.avatarUrl} alt="" className="w-full h-full object-cover" />
+            ) : (
+              <User size={48} strokeWidth={1.5} />
+            )}
+            <div className="absolute bottom-0 right-0 w-8 h-8 bg-success border-4 border-white rounded-full flex items-center justify-center text-white shadow-sm">
+              <ShieldCheck size={14} />
             </div>
           </div>
-        ) : (
-          <>
-            <div className="flex flex-col items-center mb-10">
-              <div className="mb-3 flex h-20 w-20 items-center justify-center rounded-full bg-primary/10 overflow-hidden">
-                {profile?.avatarUrl ? (
-                  <img src={profile.avatarUrl} alt="" className="w-full h-full object-cover" />
-                ) : (
-                  <User className="h-10 w-10 text-primary" />
-                )}
-              </div>
-              <h2 className="font-display text-xl font-bold text-charcoal">
-                {profile?.firstName ?? profile?.email ?? 'User'}
-              </h2>
-              <div className="flex items-center gap-3 mt-1 text-sm text-charcoal/60">
-                {profile?.email && (
-                  <span className="flex items-center gap-1">
-                    <Mail size={14} /> {profile.email}
-                  </span>
-                )}
-                {profile?.phone && (
-                  <span className="flex items-center gap-1">
-                    <Phone size={14} /> {profile.phone}
-                  </span>
-                )}
-              </div>
-              {profile?.landlordProfile?.firmName && (
-                <p className="text-sm text-charcoal/40 mt-1">{profile.landlordProfile.firmName}</p>
-              )}
-            </div>
+          <h2 className="font-playfair text-2xl font-bold text-charcoal">
+            {profile?.firstName ? `${profile.firstName} ${profile.lastName ?? ''}` : 'Verified Landlord'}
+          </h2>
+          <p className="text-[11px] font-mono text-muted uppercase tracking-widest mt-1">
+            {profile?.landlordProfile?.firmName ?? `ID: ${userId?.slice(0, 8)}`}
+          </p>
+          
+          <div className="flex gap-2 mt-4">
+             {isNinVerified && <VerifiedBadge type="nin_verified" size="sm" />}
+             <VerifiedBadge type="agent_verified" body="LANDLORD" size="sm" />
+          </div>
+        </section>
 
-            <div className="space-y-2 max-w-md mx-auto">
-              <button
-                className="flex w-full items-center gap-3 rounded-card bg-white px-4 py-3 text-left shadow-sm hover:bg-gray-50 transition-colors"
-                onClick={() => router.push('/landlord/settings')}
-              >
-                <Settings className="h-5 w-5 text-charcoal/60" />
-                <span className="font-body text-sm text-charcoal">Settings</span>
-              </button>
-              <button
-                className="flex w-full items-center gap-3 rounded-card bg-white px-4 py-3 text-left shadow-sm hover:bg-gray-50 transition-colors"
-                onClick={() => router.push('/landlord/listings')}
-              >
-                <User className="h-5 w-5 text-charcoal/60" />
-                <span className="font-body text-sm text-charcoal">My Listings</span>
-              </button>
-              <button
-                className="flex w-full items-center gap-3 rounded-card bg-white px-4 py-3 text-left shadow-sm text-red-500 hover:bg-red-50 transition-colors"
-                onClick={() => signOutMutation.mutate()}
-              >
-                <LogOut className="h-5 w-5" />
-                <span className="font-body text-sm">Sign Out</span>
-              </button>
-            </div>
-          </>
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl px-4 py-3 mb-6">
+            {error}
+          </div>
         )}
+
+        {/* Workspace Switcher */}
+        <section className="mb-10">
+          <h3 className="font-mono text-[11px] uppercase tracking-widest text-muted mb-4 px-1">ACTIVE WORKSPACE</h3>
+          <div className="grid grid-cols-1 gap-2">
+            {roles.map((role) => (
+              <button
+                key={role}
+                onClick={() => handleSwitchRole(role)}
+                className={cn(
+                  "p-4 rounded-card border-2 flex items-center justify-between transition-all group",
+                  activeRole === role 
+                    ? "bg-terra border-terra text-white shadow-lg" 
+                    : "bg-white border-outline-variant text-charcoal hover:border-terra/30"
+                )}
+              >
+                <div className="flex items-center gap-4">
+                  <div className={cn(
+                    "w-10 h-10 rounded-xl flex items-center justify-center transition-colors",
+                    activeRole === role ? "bg-white/20" : "bg-sand"
+                  )}>
+                    {role === 'tenant' && <User size={20} />}
+                    {role === 'landlord' && <Building size={20} />}
+                    {role === 'agent' && <UserCheck size={20} />}
+                  </div>
+                  <div className="text-left">
+                    <p className="font-bold text-sm capitalize">{role} Mode</p>
+                    <p className={cn(
+                      "text-[10px] uppercase font-mono tracking-wider",
+                      activeRole === role ? "text-white/70" : "text-muted"
+                    )}>
+                      {activeRole === role ? 'Currently Active' : 'Switch to this role'}
+                    </p>
+                  </div>
+                </div>
+                {activeRole === role ? (
+                  <CheckCircle2 size={20} />
+                ) : (
+                  <ChevronRight size={20} className="text-muted group-hover:text-terra transition-colors" />
+                )}
+              </button>
+            ))}
+          </div>
+        </section>
+
+        {/* Menu Items */}
+        <section className="bg-white border border-outline-variant rounded-card overflow-hidden shadow-sm mb-10">
+          {menuItems.map((item, i) => (
+            <button
+              key={i}
+              onClick={() => router.push(item.href)}
+              className={cn(
+                "w-full p-4 flex items-center justify-between hover:bg-sand/30 transition-colors border-b border-outline-variant/30 last:border-0",
+              )}
+            >
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 rounded-xl bg-sand flex items-center justify-center text-muted">
+                  <item.icon size={20} />
+                </div>
+                <span className="font-bold text-charcoal text-sm">{item.label}</span>
+              </div>
+              <ChevronRight size={18} className="text-muted/50" />
+            </button>
+          ))}
+        </section>
+
+        {/* Logout */}
+        <Button
+          variant="ghost"
+          size="lg"
+          fullWidth
+          onClick={handleSignOut}
+          className="text-red-500 bg-red-50 border border-red-100 hover:bg-red-100"
+          icon={<LogOut size={20} />}
+        >
+          Sign Out
+        </Button>
       </div>
+
+      <BottomNav role="LANDLORD" />
+    </div>
+  );
+}
+
+function CheckCircle2({ size, className }: { size?: number, className?: string }) {
+  return (
+    <div className={cn("w-6 h-6 rounded-full bg-white flex items-center justify-center text-terra shadow-sm", className)}>
+      <ShieldCheck size={size ? size - 4 : 16} />
     </div>
   );
 }
