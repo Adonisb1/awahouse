@@ -69,7 +69,7 @@ function AuthPage() {
         });
         
         if (result.activeRole === 'admin') {
-          router.push('/dashboard');
+          router.push('/admin/dashboard');
         } else {
           router.push('/verify-nin');
         }
