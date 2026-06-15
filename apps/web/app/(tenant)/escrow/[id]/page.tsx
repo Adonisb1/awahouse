@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils/cn';
 import { TopNav } from '@/components/layout/TopNav';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { KoboDisplay } from '@/components/ui/KoboDisplay';
-import { EscrowStatusChip } from '@/components/escrow/EscrowStatusChip';
+import { EscrowStatusChip, EscrowStatus } from '@/components/escrow/EscrowStatusChip';
 import { Button } from '@/components/ui/Button';
 import { trpc } from '@/lib/trpc/react';
 import { NotificationBell } from '@/components/layout/NotificationBell';
@@ -196,7 +196,7 @@ export default function EscrowDashboardPage() {
               {isTerminal ? `This transaction has been ${terminalLabel?.toLowerCase()}` : 'Your deposit is safe and secured.'}
             </p>
           </div>
-          <EscrowStatusChip status={status as any} />
+          <EscrowStatusChip status={status as EscrowStatus} />
         </div>
 
         {isTerminal && status === 'disputed' && (

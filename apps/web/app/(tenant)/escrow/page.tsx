@@ -4,9 +4,9 @@ import { Card, CardContent } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { KoboDisplay } from '@/components/ui/KoboDisplay';
 import { Skeleton } from '@/components/ui/Skeleton';
-import { BottomNav } from '@/components/layout/BottomNav';
+import { BottomNav, type UserRole } from '@/components/layout/BottomNav';
 import { trpc } from '@/lib/trpc/react';
-import { useAuthStore } from '@/hooks/useAuthStore';
+import { useAuthStore, type Role } from '@/hooks/useAuthStore';
 import Link from 'next/link';
 
 const STATUS_BADGE: Record<string, 'fully_verified' | 'title_confirmed' | 'agent_verified' | 'pending'> = {
@@ -100,7 +100,7 @@ export default function EscrowDashboardPage() {
         </div>
       </div>
 
-      <BottomNav role={activeRole?.toUpperCase() as any || 'TENANT'} />
+      <BottomNav role={(activeRole?.toUpperCase() ?? 'TENANT') as UserRole} />
     </div>
   );
 }

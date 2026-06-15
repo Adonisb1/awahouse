@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { ShieldCheck } from 'lucide-react';
 import { TopNav } from '@/components/layout/TopNav';
 import { Card, CardContent } from '@/components/ui/Card';
-import { EscrowStatusChip } from '@/components/escrow/EscrowStatusChip';
+import { EscrowStatusChip, EscrowStatus } from '@/components/escrow/EscrowStatusChip';
 import { KoboDisplay } from '@/components/ui/KoboDisplay';
 import { trpc } from '@/lib/trpc/react';
 
@@ -47,7 +47,7 @@ export default function AgentEscrowPage() {
                     </p>
                     <div className="flex items-center gap-2 mt-1">
                       <span className="text-xs text-charcoal/50">{escrow.property.lga}</span>
-                      <EscrowStatusChip status={escrow.status as any} />
+                      <EscrowStatusChip status={escrow.status as EscrowStatus} />
                     </div>
                   </div>
                   <div className="text-right ml-4 shrink-0">

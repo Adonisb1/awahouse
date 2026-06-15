@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { ShieldCheck } from 'lucide-react';
 import { TopNav } from '@/components/layout/TopNav';
 import { Card, CardContent } from '@/components/ui/Card';
-import { EscrowStatusChip } from '@/components/escrow/EscrowStatusChip';
+import { EscrowStatusChip, EscrowStatus } from '@/components/escrow/EscrowStatusChip';
 import { KoboDisplay } from '@/components/ui/KoboDisplay';
 import { trpc } from '@/lib/trpc/react';
 
@@ -47,7 +47,7 @@ export default function LandlordEscrowPage() {
                         <span className="font-mono text-xs text-charcoal/40">
                           {escrow.paymentReference ?? escrow.id.slice(0, 8)}
                         </span>
-                        <EscrowStatusChip status={escrow.status as any} />
+                        <EscrowStatusChip status={escrow.status as EscrowStatus} />
                       </div>
                       <p className="font-semibold text-charcoal truncate">
                         {escrow.property.title}

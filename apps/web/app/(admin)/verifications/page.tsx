@@ -16,7 +16,7 @@ export default function AdminVerificationsPage() {
   const [statusFilter, setStatusFilter] = React.useState<string | undefined>(undefined);
 
   const { data, isLoading } = trpc.admin.listVerifications.useQuery({
-    status: statusFilter as any,
+    status: statusFilter as 'pending' | 'approved' | 'rejected' | undefined,
     limit: 50,
   });
 

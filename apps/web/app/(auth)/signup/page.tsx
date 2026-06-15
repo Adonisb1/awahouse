@@ -60,8 +60,8 @@ export default function AuthPage() {
       if (result.success && result.userId) {
         setAuth({
           userId: result.userId,
-          roles: result.roles as any,
-          activeRole: result.activeRole as any,
+          roles: result.roles as Role[],
+          activeRole: result.activeRole as Role,
           sessionToken: result.sessionToken,
         });
         

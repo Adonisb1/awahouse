@@ -1,5 +1,5 @@
 import { TRPCError } from '@trpc/server';
-import { prisma, type ReviewType } from '@awahouse/db';
+import { Prisma, prisma, type ReviewType } from '@awahouse/db';
 
 export class ReviewService {
   async create(
@@ -51,7 +51,7 @@ export class ReviewService {
 
     const [reviews, total] = await Promise.all([
       prisma.review.findMany({
-        where: where as any,
+        where: where as Prisma.ReviewWhereInput,
         include: {
           reviewer: { select: { id: true, firstName: true, lastName: true, avatarUrl: true } },
         },
@@ -59,7 +59,7 @@ export class ReviewService {
         skip,
         take: input.limit,
       }),
-      prisma.review.count({ where: where as any }),
+      prisma.review.count({ where: where as Prisma.ReviewWhereInput }),
     ]);
 
     return { reviews, total, page: input.page, limit: input.limit };
@@ -72,7 +72,7 @@ export class ReviewService {
     if (input.revieweeId) where.revieweeId = input.revieweeId;
 
     const result = await prisma.review.aggregate({
-      where: where as any,
+      where: where as Prisma.ReviewWhereInput,
       _avg: { rating: true },
       _count: { rating: true },
     });

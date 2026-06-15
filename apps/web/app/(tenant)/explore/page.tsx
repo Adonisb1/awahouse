@@ -6,12 +6,12 @@ import { motion } from 'framer-motion';
 import { Search, Settings2, User as UserIcon, ShieldCheck } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import { TopNav } from '@/components/layout/TopNav';
-import { BottomNav } from '@/components/layout/BottomNav';
+import { BottomNav, type UserRole } from '@/components/layout/BottomNav';
 import { PropertyCard } from '@/components/property/PropertyCard';
 import { AgentCard } from '@/components/agents/AgentCard';
 import { VerifiedBadge } from '@/components/ui/VerifiedBadge';
 import { trpc } from '@/lib/trpc/react';
-import { useAuthStore } from '@/hooks/useAuthStore';
+import { useAuthStore, type Role } from '@/hooks/useAuthStore';
 
 const filterChips = [
   'All Verified',
@@ -135,7 +135,7 @@ export default function ExplorePage() {
                   lga={prop.lga ?? ''}
                   priceYearlyKobo={Number(prop.priceKobo)}
                   imageUrl={prop.images?.[0]?.signedUrl ?? null}
-                  verificationStatus={prop.verificationBadge as any}
+                  verificationStatus={prop.verificationBadge as 'VERIFIED' | 'PENDING' | 'DOCS_SUBMITTED' | 'TITLE_CONFIRMED'}
                   rating={4.9} // Mock rating for now as it's computed
                   reviewCount={12}
                   isSaved={false}
@@ -215,7 +215,7 @@ export default function ExplorePage() {
         </section>
       </div>
 
-      <BottomNav role={activeRole?.toUpperCase() as any || 'TENANT'} />
+      <BottomNav role={(activeRole?.toUpperCase() ?? 'TENANT') as UserRole} />
     </div>
   );
 }

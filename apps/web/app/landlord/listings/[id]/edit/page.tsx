@@ -25,7 +25,7 @@ export default function EditListingPage() {
     try {
       setError('');
       const type = (data.type ?? '').toLowerCase();
-      if (!VALID_TYPES.includes(type as any)) {
+      if (!VALID_TYPES.includes(type as typeof VALID_TYPES[number])) {
         setError(`Invalid property type: ${data.type}`);
         return;
       }

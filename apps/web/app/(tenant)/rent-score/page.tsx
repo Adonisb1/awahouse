@@ -152,7 +152,7 @@ export default function RentScorePage() {
                   <div>
                     <p className="text-xs font-bold text-charcoal">
                       {formatDate(event.createdAt)} &middot; {event.metadata && typeof event.metadata === 'object' && 'amount' in event.metadata
-                        ? `₦${Number((event.metadata as any).amount) / 100}`
+                        ? `₦${Number((event.metadata as { amount: number }).amount) / 100}`
                         : event.eventType.replace(/_/g, ' ')}
                     </p>
                     <div className="flex items-center gap-1.5 mt-1">

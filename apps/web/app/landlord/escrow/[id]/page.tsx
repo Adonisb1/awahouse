@@ -6,7 +6,7 @@ import { ShieldCheck, CheckCircle2, Key, CreditCard, FileText, AlertCircle, Info
 import { cn } from '@/lib/utils/cn';
 import { TopNav } from '@/components/layout/TopNav';
 import { KoboDisplay } from '@/components/ui/KoboDisplay';
-import { EscrowStatusChip } from '@/components/escrow/EscrowStatusChip';
+import { EscrowStatusChip, EscrowStatus } from '@/components/escrow/EscrowStatusChip';
 import { Button } from '@/components/ui/Button';
 import { trpc } from '@/lib/trpc/react';
 
@@ -113,7 +113,7 @@ export default function LandlordEscrowPage() {
           <h1 className="font-playfair text-2xl font-bold text-charcoal">
             {isTerminal ? terminalLabel : 'Transaction Details'}
           </h1>
-          <EscrowStatusChip status={status as any} />
+          <EscrowStatusChip status={status as EscrowStatus} />
         </div>
 
         {isTerminal && status === 'disputed' && (
@@ -180,7 +180,7 @@ export default function LandlordEscrowPage() {
             </div>
             <div className="flex justify-between">
               <span className="text-muted">Status</span>
-              <EscrowStatusChip status={status as any} />
+              <EscrowStatusChip status={status as EscrowStatus} />
             </div>
             <div className="flex justify-between">
               <span className="text-muted">Created</span>

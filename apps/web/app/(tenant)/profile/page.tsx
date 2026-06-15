@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import { TopNav } from '@/components/layout/TopNav';
-import { BottomNav } from '@/components/layout/BottomNav';
+import { BottomNav, type UserRole } from '@/components/layout/BottomNav';
 import { Button } from '@/components/ui/Button';
 import { VerifiedBadge } from '@/components/ui/VerifiedBadge';
 import { useAuthStore, type Role } from '@/hooks/useAuthStore';
@@ -39,7 +39,7 @@ export default function ProfilePage() {
   const handleSwitchRole = async (role: Role) => {
     if (role === activeRole) return;
     try {
-      await switchRoleMutation.mutateAsync({ role: role as any });
+      await switchRoleMutation.mutateAsync({ role });
       setActiveRole(role);
       router.push('/dashboard');
     } catch (err: any) {
@@ -163,7 +163,7 @@ export default function ProfilePage() {
         </Button>
       </div>
 
-      <BottomNav role={activeRole?.toUpperCase() as any || 'TENANT'} />
+      <BottomNav role={(activeRole?.toUpperCase() ?? 'TENANT') as UserRole} />
     </div>
   );
 }

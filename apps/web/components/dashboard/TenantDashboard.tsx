@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Search, ShieldCheck, TrendingUp, Heart, ArrowRight, User as UserIcon } from 'lucide-react';
 import { TopNav } from '@/components/layout/TopNav';
 import { KoboDisplay } from '@/components/ui/KoboDisplay';
-import { EscrowStatusChip } from '@/components/escrow/EscrowStatusChip';
+import { EscrowStatusChip, EscrowStatus } from '@/components/escrow/EscrowStatusChip';
 import { Button } from '@/components/ui/Button';
 import { VerificationBanner } from '@/components/dashboard/VerificationBanner';
 import { NotificationBell } from '@/components/layout/NotificationBell';
@@ -132,7 +132,7 @@ export function TenantDashboardView() {
                   >
                     <div className="flex items-center justify-between mb-1">
                       <p className="font-semibold text-sm text-charcoal truncate">{e.property.title}</p>
-                      <EscrowStatusChip status={e.status as any} />
+                      <EscrowStatusChip status={e.status as EscrowStatus} />
                     </div>
                     <KoboDisplay kobo={Number(e.amountKobo)} size="sm" />
                   </div>

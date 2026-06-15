@@ -1,5 +1,5 @@
 import { TRPCError } from '@trpc/server';
-import { prisma } from '@awahouse/db';
+import { Prisma, prisma } from '@awahouse/db';
 import crypto from 'crypto';
 import sharp from 'sharp';
 import type { CreatePropertyInput, UpdatePropertyInput, PropertySearchInput } from '../schemas/properties';
@@ -161,7 +161,7 @@ export class PropertyService {
 
     const [properties, total] = await Promise.all([
       prisma.property.findMany({
-        where: geoFilteredIds ? { id: { in: geoFilteredIds }, ...where } : (where as any),
+        where: geoFilteredIds ? { id: { in: geoFilteredIds }, ...where } : (where as Prisma.PropertyWhereInput),
         include: {
           images: { take: 1, orderBy: { sortOrder: 'asc' } },
           owner: { select: { id: true, firstName: true, lastName: true, roles: true, activeRole: true } },
@@ -171,7 +171,7 @@ export class PropertyService {
         take,
       }),
       prisma.property.count({
-        where: geoFilteredIds ? { id: { in: geoFilteredIds }, ...where } : (where as any),
+        where: geoFilteredIds ? { id: { in: geoFilteredIds }, ...where } : (where as Prisma.PropertyWhereInput),
       }),
     ]);
 

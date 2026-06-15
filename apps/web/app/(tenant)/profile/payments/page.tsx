@@ -4,7 +4,7 @@ import { ShieldCheck } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { TopNav } from '@/components/layout/TopNav';
 import { KoboDisplay } from '@/components/ui/KoboDisplay';
-import { EscrowStatusChip } from '@/components/escrow/EscrowStatusChip';
+import { EscrowStatusChip, EscrowStatus } from '@/components/escrow/EscrowStatusChip';
 import { trpc } from '@/lib/trpc/react';
 
 export default function PaymentsPage() {
@@ -59,7 +59,7 @@ export default function PaymentsPage() {
               >
                 <div className="flex items-center justify-between mb-1">
                   <p className="font-semibold text-sm text-charcoal truncate">{e.property.title}</p>
-                  <EscrowStatusChip status={e.status as any} />
+                  <EscrowStatusChip status={e.status as EscrowStatus} />
                 </div>
                 <div className="flex items-center justify-between">
                   <KoboDisplay kobo={Number(e.amountKobo)} size="sm" />

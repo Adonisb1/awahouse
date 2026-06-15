@@ -7,7 +7,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Card, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { KoboDisplay } from '@/components/ui/KoboDisplay';
-import { EscrowStatusChip } from '@/components/escrow/EscrowStatusChip';
+import { EscrowStatusChip, EscrowStatus } from '@/components/escrow/EscrowStatusChip';
 import { trpc } from '@/lib/trpc/react';
 
 const STATUS_TABS = [
@@ -25,7 +25,7 @@ function EscrowTable() {
   const pageParam = parseInt(searchParams.get('page') ?? '1', 10);
 
   const { data, isLoading } = trpc.admin.listEscrows.useQuery({
-    status: (statusParam as any) ?? undefined,
+    status: (statusParam as 'pending_payment' | 'funds_held' | 'docs_verified' | 'key_handover_pending' | 'completed' | 'refunded' | 'cancelled' | 'disputed') ?? undefined,
     page: pageParam,
     limit: 20,
   });
@@ -103,7 +103,7 @@ function EscrowTable() {
                         <KoboDisplay kobo={Number(escrow.amountKobo)} size="sm" />
                       </td>
                       <td className="py-3 pr-4">
-                        <EscrowStatusChip status={escrow.status as any} />
+                        <EscrowStatusChip status={escrow.status as EscrowStatus} />
                       </td>
                       <td className="py-3 pr-4 text-charcoal/40 text-xs whitespace-nowrap">
                         {new Date(escrow.createdAt).toLocaleDateString('en-GB', {

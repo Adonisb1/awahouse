@@ -4,7 +4,7 @@ import * as React from 'react';
 import { useRouter } from 'next/navigation';
 import { User, MessageSquare, Phone, Mail } from 'lucide-react';
 import { TopNav } from '@/components/layout/TopNav';
-import { EscrowStatusChip } from '@/components/escrow/EscrowStatusChip';
+import { EscrowStatusChip, EscrowStatus } from '@/components/escrow/EscrowStatusChip';
 import { Button } from '@/components/ui/Button';
 import { trpc } from '@/lib/trpc/react';
 
@@ -60,7 +60,7 @@ export default function TenantsPage() {
                                                 onClick={() => router.push(`/landlord/escrow/${p.escrowId}`)}
                                             >
                                                 <span className="text-sm font-medium text-charcoal">{p.title}</span>
-                                                <EscrowStatusChip status={p.status as any} />
+                                                <EscrowStatusChip status={p.status as EscrowStatus} />
                                             </div>
                                         ))}
                                     </div>

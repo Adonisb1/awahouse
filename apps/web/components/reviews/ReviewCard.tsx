@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils/cn';
 import { StarRating } from '@/components/ui/StarRating';
 import { VerifiedBadge } from '@/components/ui/VerifiedBadge';
 
-interface ReviewCardProps {
+export interface ReviewCardProps {
   id: string;
   authorName: string;
   authorInitials: string;

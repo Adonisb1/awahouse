@@ -6,7 +6,7 @@ import { Plus, Edit2, Trash2, User as UserIcon, ArrowRight, CheckCircle2, Users 
 import { TopNav } from '@/components/layout/TopNav';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { KoboDisplay } from '@/components/ui/KoboDisplay';
-import { EscrowStatusChip } from '@/components/escrow/EscrowStatusChip';
+import { EscrowStatusChip, EscrowStatus } from '@/components/escrow/EscrowStatusChip';
 import { Button } from '@/components/ui/Button';
 import { NotificationBell } from '@/components/layout/NotificationBell';
 import { VerificationBanner } from '@/components/dashboard/VerificationBanner';
@@ -135,7 +135,7 @@ export function AgentDashboardView() {
                   >
                     <div className="flex items-center justify-between mb-1">
                       <p className="font-semibold text-sm text-charcoal truncate">{e.property.title}</p>
-                      <EscrowStatusChip status={e.status as any} />
+                      <EscrowStatusChip status={e.status as EscrowStatus} />
                     </div>
                     <KoboDisplay kobo={Number(e.amountKobo)} size="sm" />
                   </div>

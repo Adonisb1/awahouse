@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { trpc } from '@/lib/trpc/react';
-import { useAuthStore } from '@/hooks/useAuthStore';
+import { useAuthStore, type Role } from '@/hooks/useAuthStore';
 
 export function SessionSync({ children }: { children: React.ReactNode }) {
   const setAuth = useAuthStore((s) => s.setAuth);
@@ -17,8 +17,8 @@ export function SessionSync({ children }: { children: React.ReactNode }) {
     if (data?.authenticated && data.userId) {
       setAuth({
         userId: data.userId,
-        roles: data.roles as any,
-        activeRole: data.activeRole as any,
+        roles: data.roles as Role[],
+        activeRole: data.activeRole as Role,
       });
     } else if (data && !data.authenticated) {
       clearAuth();

@@ -8,9 +8,10 @@ import { cn } from '@/lib/utils/cn';
 import { TopNav } from '@/components/layout/TopNav';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { StarRating } from '@/components/ui/StarRating';
-import { ReviewCard } from '@/components/reviews/ReviewCard';
+import { ReviewCard, type ReviewCardProps } from '@/components/reviews/ReviewCard';
 import { Button } from '@/components/ui/Button';
 import { Skeleton } from '@/components/ui/Skeleton';
+import type { Review } from '@awahouse/db';
 import { trpc } from '@/lib/trpc/react';
 
 export default function ReviewsPage() {
@@ -29,7 +30,7 @@ export default function ReviewsPage() {
   const { data: aggregateData } = trpc.reviews.aggregateRating.useQuery({ propertyId });
   const createReview = trpc.reviews.create.useMutation();
 
-  const reviews = (reviewsData?.reviews ?? []) as any[];
+  const reviews = (reviewsData?.reviews ?? []) as Review[];
   const aggregate = aggregateData?.average;
 
   const handleSubmitReview = async () => {
@@ -157,7 +158,7 @@ export default function ReviewsPage() {
         ) : (
           <div className="space-y-4">
             {filteredReviews.map((review) => (
-              <ReviewCard key={review.id} {...review as any} onMarkHelpful={() => {}} />
+              <ReviewCard key={review.id} {...review as unknown as ReviewCardProps} onMarkHelpful={() => {}} />
             ))}
           </div>
         )}

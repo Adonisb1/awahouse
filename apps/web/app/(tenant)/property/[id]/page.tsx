@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import { KoboDisplay } from '@/components/ui/KoboDisplay';
-import { VerifiedBadge } from '@/components/ui/VerifiedBadge';
+import { VerifiedBadge, type BadgeType } from '@/components/ui/VerifiedBadge';
 import { StarRating } from '@/components/ui/StarRating';
 import { ReviewCard } from '@/components/reviews/ReviewCard';
 import { Button } from '@/components/ui/Button';
@@ -109,7 +109,7 @@ export default function PropertyDetailPage() {
         </div>
 
         <div className="flex flex-wrap gap-2 mb-8">
-          <VerifiedBadge type={property.verificationBadge as any} />
+          <VerifiedBadge type={property.verificationBadge as BadgeType} />
           <div className="bg-blue-50 text-blue-700 px-2.5 py-1 rounded-badge border border-blue-200 text-[11px] font-mono font-bold flex items-center gap-1.5">
             <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
             Escrow Eligible
