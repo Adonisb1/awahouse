@@ -10,8 +10,7 @@ import {
   Mail, 
   User, 
   LayoutDashboard, 
-  Building, 
-  Users 
+  Building 
 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 
@@ -47,7 +46,7 @@ const BottomNav: React.FC<{ role: UserRole }> = ({ role }) => {
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, href: '/agent' },
     { id: 'listings', label: 'Listings', icon: Building, href: '/agent/listings' },
     { id: 'post', label: 'Post', icon: PlusCircle, href: '/agent/listings/create' },
-    { id: 'clients', label: 'Clients', icon: Users, href: '/agent/clients' },
+    { id: 'escrow', label: 'Escrow', icon: ShieldCheck, href: '/agent/escrow' },
     { id: 'profile', label: 'Profile', icon: User, href: '/agent/profile' },
   ];
 
