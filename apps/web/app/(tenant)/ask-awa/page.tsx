@@ -4,6 +4,8 @@ import { useState, useRef, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { TopNav } from '@/components/layout/TopNav';
+import { useRouter } from 'next/navigation';
 
 type Message = {
   role: 'user' | 'assistant';
@@ -16,6 +18,7 @@ const WELCOME: Message = {
 };
 
 export default function AskAwaPage() {
+  const router = useRouter();
   const [messages, setMessages] = useState<Message[]>([WELCOME]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -52,49 +55,47 @@ export default function AskAwaPage() {
   };
 
   return (
-    <div className="mx-auto flex max-w-3xl flex-col px-4 py-6">
-      <div className="mb-4">
-        <h1 className="font-display text-3xl italic font-black text-charcoal">Ask Awa</h1>
-        <p className="font-body text-charcoal/60">Your AI property assistant</p>
-      </div>
-
-      <Card className="mb-4 flex-1">
-        <CardContent className="pt-4 pb-4 flex flex-col gap-3 max-h-[60vh] overflow-y-auto">
-          {messages.map((msg, i) => (
-            <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-              <div className={`max-w-[80%] rounded-lg px-4 py-2 ${
-                msg.role === 'user'
-                  ? 'bg-primary text-white'
-                  : 'bg-surface-warm text-charcoal'
-              }`}>
-                <p className="font-body text-sm">{msg.content}</p>
+    <div className="min-h-screen bg-sand flex flex-col">
+      <TopNav variant="back" title="Ask Awa" onBack={() => router.push('/explore')} />
+      <div className="mx-auto flex max-w-3xl flex-col px-4 py-6 w-full flex-1 overflow-hidden">
+        <Card className="mb-4 flex-1 flex flex-col overflow-hidden">
+          <CardContent className="pt-4 pb-4 flex flex-col gap-3 overflow-y-auto flex-1">
+            {messages.map((msg, i) => (
+              <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                <div className={`max-w-[80%] rounded-lg px-4 py-2 ${
+                  msg.role === 'user'
+                    ? 'bg-primary text-white'
+                    : 'bg-surface-warm text-charcoal'
+                }`}>
+                  <p className="font-body text-sm">{msg.content}</p>
+                </div>
               </div>
-            </div>
-          ))}
-          {loading && (
-            <div className="flex justify-start">
-              <div className="max-w-[80%] rounded-lg bg-surface-warm px-4 py-2">
-                <p className="font-body text-sm text-charcoal/60 animate-pulse">Awa is thinking...</p>
+            ))}
+            {loading && (
+              <div className="flex justify-start">
+                <div className="max-w-[80%] rounded-lg bg-surface-warm px-4 py-2">
+                  <p className="font-body text-sm text-charcoal/60 animate-pulse">Awa is thinking...</p>
+                </div>
               </div>
-            </div>
-          )}
-          <div ref={bottomRef} />
-        </CardContent>
-      </Card>
+            )}
+            <div ref={bottomRef} />
+          </CardContent>
+        </Card>
 
-      <div className="flex gap-2">
-        <div className="flex-1">
-          <Input
-            value={input}
-            onChangeValue={setInput}
-            onKeyDown={handleKeyDown}
-            placeholder="Ask Awa anything about Awahouse..."
-            disabled={loading}
-          />
+        <div className="flex gap-2 mb-2">
+          <div className="flex-1">
+            <Input
+              value={input}
+              onChangeValue={setInput}
+              onKeyDown={handleKeyDown}
+              placeholder="Ask Awa anything about Awahouse..."
+              disabled={loading}
+            />
+          </div>
+          <Button onClick={handleSend} disabled={loading || !input.trim()}>
+            Send
+          </Button>
         </div>
-        <Button onClick={handleSend} disabled={loading || !input.trim()}>
-          Send
-        </Button>
       </div>
     </div>
   );

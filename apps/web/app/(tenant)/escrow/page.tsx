@@ -8,6 +8,10 @@ import { BottomNav, type UserRole } from '@/components/layout/BottomNav';
 import { trpc } from '@/lib/trpc/react';
 import { useAuthStore, type Role } from '@/hooks/useAuthStore';
 import Link from 'next/link';
+import { TopNav } from '@/components/layout/TopNav';
+import { NotificationBell } from '@/components/layout/NotificationBell';
+import { User as UserIcon } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 const STATUS_BADGE: Record<string, 'fully_verified' | 'title_confirmed' | 'agent_verified' | 'pending'> = {
   pending_payment: 'pending',
@@ -44,12 +48,27 @@ function timeAgo(date: Date): string {
 }
 
 export default function EscrowDashboardPage() {
+  const router = useRouter();
   const activeRole = useAuthStore((s) => s.activeRole);
   const { data, isLoading } = trpc.escrow.list.useQuery({});
   const escrows = data?.items ?? [];
 
   return (
     <div className="flex flex-col min-h-screen bg-sand pb-[80px]">
+      <TopNav
+        variant="brand"
+        actions={
+          <div className="flex gap-2">
+            <NotificationBell />
+            <Link 
+              href="/profile"
+              className="w-10 h-10 rounded-full bg-white border border-outline-variant flex items-center justify-center text-muted active:scale-95 transition-transform"
+            >
+              <UserIcon size={20} />
+            </Link>
+          </div>
+        }
+      />
       <div className="flex-1 mx-auto max-w-4xl w-full px-4 py-6">
         <div className="mb-6">
           <h1 className="font-display text-3xl italic font-black text-charcoal">My Escrows</h1>

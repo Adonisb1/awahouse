@@ -12,6 +12,7 @@ import { AgentCard } from '@/components/agents/AgentCard';
 import { VerifiedBadge } from '@/components/ui/VerifiedBadge';
 import { trpc } from '@/lib/trpc/react';
 import { useAuthStore, type Role } from '@/hooks/useAuthStore';
+import Link from 'next/link';
 
 const filterChips = [
   'All Verified',
@@ -44,12 +45,12 @@ export default function ExplorePage() {
         actions={
           <div className="flex gap-2">
             <NotificationBell />
-            <button 
-              onClick={() => router.push('/profile')}
-              className="w-10 h-10 rounded-full bg-white border border-outline-variant flex items-center justify-center text-muted"
+            <Link 
+              href="/profile"
+              className="w-10 h-10 rounded-full bg-white border border-outline-variant flex items-center justify-center text-muted active:scale-95 transition-transform"
             >
               <UserIcon size={20} />
-            </button>
+            </Link>
           </div>
         }
       />
