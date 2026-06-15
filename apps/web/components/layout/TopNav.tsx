@@ -4,6 +4,8 @@ import * as React from 'react';
 import { ArrowLeft, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
+import Link from 'next/link';
+
 interface TopNavProps {
   variant: 'brand' | 'back' | 'modal';
   title?: string;
@@ -23,7 +25,7 @@ const TopNav: React.FC<TopNavProps> = ({ variant, title, onBack, actions }) => {
   };
 
   return (
-    <nav className="h-[60px] bg-sand border-b border-outline-variant sticky top-0 z-50 px-4 flex items-center justify-between">
+    <nav className="h-[60px] bg-sand border-b border-outline-variant sticky top-0 z-[60] px-4 flex items-center justify-between">
       <div className="flex items-center gap-3">
         {variant === 'back' && (
           <button
@@ -44,9 +46,11 @@ const TopNav: React.FC<TopNavProps> = ({ variant, title, onBack, actions }) => {
         )}
 
         {variant === 'brand' ? (
-          <h1 className="font-playfair italic font-black text-2xl text-terra">
-            Awa<span className="text-charcoal not-italic">house</span>
-          </h1>
+          <Link href="/explore" className="block">
+            <h1 className="font-playfair italic font-black text-2xl text-terra">
+              Awa<span className="text-charcoal not-italic">house</span>
+            </h1>
+          </Link>
         ) : (
           <h2 className="font-playfair font-bold text-lg text-charcoal truncate max-w-[200px]">
             {title}
@@ -55,7 +59,7 @@ const TopNav: React.FC<TopNavProps> = ({ variant, title, onBack, actions }) => {
       </div>
 
       {actions && (
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 relative z-10">
           {actions}
         </div>
       )}

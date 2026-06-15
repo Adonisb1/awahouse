@@ -2,12 +2,46 @@
 
 import { Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowLeft, ArrowRight } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Card, CardContent } from '@/components/ui/Card';
 import { useAuthStore } from '@/hooks/useAuthStore';
 import { trpc } from '@/lib/trpc/react';
+import React from 'react';
+import { TopNav } from '@/components/layout/TopNav';
+
+function ResendOtpButton({ onClick }: { onClick: () => void }) {
+  const [timer, setTimer] = React.useState(60);
+  const [canResend, setCanResend] = React.useState(false);
+
+  React.useEffect(() => {
+    if (timer > 0) {
+      const interval = setInterval(() => setTimer((t) => t - 1), 1000);
+      return () => clearInterval(interval);
+    } else {
+      setCanResend(true);
+    }
+  }, [timer]);
+
+  const handleResend = () => {
+    onClick();
+    setTimer(60);
+    setCanResend(false);
+  };
+
+  return (
+    <div className="text-center text-sm mt-4">
+      {canResend ? (
+        <button onClick={handleResend} className="font-bold text-terra hover:underline">
+          Resend code
+        </button>
+      ) : (
+        <span className="text-muted">Resend code in {timer}s</span>
+      )}
+    </div>
+  );
+}
 
 function LoginForm() {
   const router = useRouter();
@@ -55,22 +89,20 @@ function LoginForm() {
   const loading = sendOtpMutation.isPending || verifyOtpMutation.isPending;
 
   return (
-    <main className="flex min-h-screen flex-col bg-surface p-6">
-      <button
-        onClick={() => (step === 'email' ? router.back() : setStep('email'))}
-        className="mb-8 flex items-center gap-2 text-sm text-charcoal/60"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        Back
-      </button>
+    <main className="flex min-h-screen flex-col bg-sand">
+      <TopNav 
+        variant="back" 
+        title={step === 'email' ? 'Login' : 'Verify Email'} 
+        onBack={() => (step === 'email' ? router.back() : setStep('email'))} 
+      />
 
-      <div className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center">
-        <h1 className="font-display text-3xl italic font-black text-charcoal">
-          {step === 'email' && 'Get started'}
+      <div className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-6">
+        <h1 className="font-playfair text-3xl font-bold text-charcoal">
+          {step === 'email' && 'Welcome back'}
           {step === 'otp' && 'Enter code'}
         </h1>
-        <p className="mt-1 font-body text-charcoal/60">
-          {step === 'email' && 'Enter your email to receive a code'}
+        <p className="mt-1 font-body text-muted">
+          {step === 'email' && 'Continue your journey to a verified home'}
           {step === 'otp' && `We sent a 6-digit code to ${email}`}
         </p>
 
@@ -107,6 +139,7 @@ function LoginForm() {
                   {loading ? 'Verifying...' : 'Verify'}
                   <ArrowRight className="h-4 w-4" />
                 </Button>
+                <ResendOtpButton onClick={handleSendOtp} />
               </div>
             )}
           </CardContent>
