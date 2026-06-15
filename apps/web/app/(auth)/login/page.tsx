@@ -45,7 +45,7 @@ function LoginForm() {
     setError('');
     try {
       const result = await verifyOtpMutation.mutateAsync({ email, code: otp, role });
-      setAuth({ userId: result.userId, roles: result.roles, activeRole: result.activeRole });
+      setAuth({ userId: result.userId, roles: result.roles, activeRole: result.activeRole, sessionToken: result.sessionToken });
       router.replace('/verify-nin');
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Invalid code');

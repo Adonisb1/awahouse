@@ -40,10 +40,6 @@ export const authRouter = router({
 
       const code = createOtp(input.email);
 
-      console.log('═══════════════════════════════════════');
-      console.log(`  🔑 OTP for ${input.email}: ${code}`);
-      console.log('═══════════════════════════════════════');
-
       const supabase = createServerSupabaseClient();
       if (supabase) {
         const { error } = await supabase.auth.signInWithOtp({
@@ -73,7 +69,6 @@ export const authRouter = router({
         if (!error && data.user) {
           supabaseUserId = data.user.id;
         } else if (error) {
-          console.warn('Supabase OTP fallback to local:', error.message);
         }
       }
 
@@ -105,7 +100,7 @@ export const authRouter = router({
           userId: newUser.id,
           roles: [newUserRole],
           activeRole: newUserRole,
-          sessionToken: supabase ? null : 'stub-session-token',
+          sessionToken: null,
         };
       }
 
@@ -114,7 +109,7 @@ export const authRouter = router({
         userId: existingUser.id,
         roles: existingUser.roles,
         activeRole: existingUser.activeRole,
-        sessionToken: supabase ? null : 'stub-session-token',
+        sessionToken: null,
       };
     }),
 
