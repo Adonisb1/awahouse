@@ -17,13 +17,17 @@ class ResendClient {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: 'Awahouse <noreply@awahouse.com>',
+        from: 'Awahouse <noreply@awahouse.ng>',
         to: payload.to,
         subject: payload.subject,
         html: payload.html,
       }),
     });
 
+    if (!response.ok) {
+      const body = await response.json();
+      console.error('Resend error: ', body);
+    }
     return { success: response.ok };
   }
 }
