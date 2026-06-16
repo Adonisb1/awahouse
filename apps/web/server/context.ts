@@ -34,6 +34,16 @@ export async function createContext(
 ): Promise<Context> {
   const headers = opts.req.headers;
 
+  // DIAGNOSTIC: Check if DB URL is present and formatted correctly (non-sensitive)
+  const dbUrl = process.env.DATABASE_URL;
+  if (!dbUrl) {
+    console.warn('⚠️ DIAGNOSTIC: DATABASE_URL is missing in environment variables.');
+  } else {
+    const hasPgBouncer = dbUrl.includes('pgbouncer=true');
+    const hasQuotes = dbUrl.startsWith('"') || dbUrl.endsWith('"');
+    console.log(`✅ DIAGNOSTIC: DATABASE_URL is present. Has pgbouncer: ${hasPgBouncer}. Has accidental quotes: ${hasQuotes}. Length: ${dbUrl.length}`);
+  }
+
   // 1. Try Supabase session cookie (production)
   const supabaseResult = await resolveFromSupabase(opts.req);
   if (supabaseResult?.userId) {
