@@ -23,7 +23,8 @@ import {
   Lock,
   Eye,
   LogOut,
-  Check
+  Check,
+  Edit2
 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import { TopNav } from '@/components/layout/TopNav';
