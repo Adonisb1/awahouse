@@ -37,11 +37,23 @@ function AuthPage() {
   const verifyOtpMutation = trpc.auth.verifyOtp.useMutation();
   const signInMutation = trpc.auth.signIn.useMutation();
 
+  const passwordRequirements = [
+    { label: 'At least 8 characters', test: (p: string) => p.length >= 8 },
+    { label: 'One uppercase letter', test: (p: string) => /[A-Z]/.test(p) },
+    { label: 'One lowercase letter', test: (p: string) => /[a-z]/.test(p) },
+    { label: 'One number', test: (p: string) => /[0-9]/.test(p) },
+  ];
+
   const handleSendOtp = async () => {
     try {
       setError('');
-      if (!form.password || form.password.length < 8) {
-        setError('Password must be at least 8 characters');
+      const isPasswordValid = passwordRequirements.every((req) => req.test(form.password));
+      if (!isPasswordValid) {
+        setError('Please meet all password requirements');
+        return;
+      }
+      if (!form.email || !form.email.includes('@')) {
+        setError('Please enter a valid email address');
         return;
       }
       await sendOtpMutation.mutateAsync({
@@ -257,6 +269,28 @@ function AuthPage() {
                     >
                       {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                     </button>
+
+                    {activeTab === 'signup' && (
+                      <div className="mt-3 grid grid-cols-2 gap-y-2 gap-x-4 px-1">
+                        {passwordRequirements.map((req, i) => {
+                          const isMet = req.test(form.password);
+                          return (
+                            <div key={i} className="flex items-center gap-2">
+                              <div className={cn(
+                                "h-1 w-1 rounded-full transition-colors duration-300",
+                                isMet ? "bg-success" : "bg-outline-variant"
+                              )} />
+                              <span className={cn(
+                                "text-[10px] font-mono uppercase tracking-tight transition-colors duration-300",
+                                isMet ? "text-success font-bold" : "text-muted"
+                              )}>
+                                {req.label}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
 
                   {activeTab === 'signup' && (
