@@ -147,9 +147,8 @@ function AuthPage() {
   return (
     <div className="min-h-screen bg-sand flex flex-col justify-center py-12 px-6">
       <div className="w-full max-w-md mx-auto">
-        <div className="flex justify-between items-center mb-10">
+        <div className="flex justify-center items-center mb-10">
           <h1 className="font-playfair italic font-black text-2xl text-terra">Awahouse</h1>
-          <span className="font-mono text-[11px] text-muted uppercase tracking-widest">AWH-03 //</span>
         </div>
 
         <div className="bg-white p-8 rounded-card shadow-card">
@@ -206,7 +205,7 @@ function AuthPage() {
                 <div className="space-y-6">
                   {activeTab === 'signup' && (
                     <Input
-                      label="Full Name"
+                      label="Full Name (first name, surname)"
                       placeholder="Enter your legal name"
                       value={form.fullName}
                       onChangeValue={(val) => setForm({ ...form, fullName: val })}
