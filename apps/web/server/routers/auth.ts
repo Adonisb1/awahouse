@@ -9,7 +9,63 @@ import { createServerSupabaseClient } from '@/lib/auth/supabase';
 import { createOtp, verifyOtp, canRequestOtp } from '@/lib/auth/otp';
 import { encrypt, decrypt } from '@/lib/crypto/encrypt';
 import { verificationService } from '../services/VerificationService';
+import { resendClient } from '@/lib/resend/client';
 import { prisma } from '@awahouse/db';
+
+function buildOtpEmailHtml(code: string): string {
+  return `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin:0;padding:0;background:#F5EFE3;font-family:'DM Sans',Helvetica,Arial,sans-serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F5EFE3;">
+    <tr>
+      <td align="center" style="padding:40px 16px;">
+        <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="background:#F9F3E7;border-radius:20px;box-shadow:0 2px 12px rgba(0,0,0,0.07);">
+          <tr>
+            <td style="padding:40px 32px 0;text-align:center;">
+              <h1 style="font-family:'Playfair Display',Georgia,serif;font-style:italic;font-weight:900;font-size:28px;color:#C4531C;margin:0 0 4px;">Awa<span style="color:#3D3020;">house</span></h1>
+              <p style="font-family:'DM Sans',Helvetica,Arial,sans-serif;font-size:11px;letter-spacing:3px;text-transform:uppercase;color:#3D3020;opacity:0.4;margin:0;">Verified Property Marketplace</p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:32px 32px 0;text-align:center;">
+              <div style="width:48px;height:3px;background:#C4531C;margin:0 auto 24px;border-radius:2px;"></div>
+              <h2 style="font-family:'DM Sans',Helvetica,Arial,sans-serif;font-weight:600;font-size:18px;color:#3D3020;margin:0 0 8px;">Verify your email</h2>
+              <p style="font-family:'DM Sans',Helvetica,Arial,sans-serif;font-size:14px;color:#3D3020;opacity:0.6;line-height:1.6;margin:0 0 24px;">Use the code below to complete your account setup. It expires in 5 minutes.</p>
+            </td>
+          </tr>
+          <tr>
+            <td align="center" style="padding:0 32px;">
+              <table role="presentation" cellpadding="0" cellspacing="0" style="background:#FFFFFF;border-radius:12px;padding:24px 32px;width:100%;">
+                <tr>
+                  <td align="center">
+                    <p style="font-family:'DM Mono',monospace;font-size:36px;font-weight:600;letter-spacing:12px;color:#C4531C;margin:0;">${code}</p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:24px 32px 0;text-align:center;">
+              <p style="font-family:'DM Sans',Helvetica,Arial,sans-serif;font-size:12px;color:#3D3020;opacity:0.4;line-height:1.6;margin:0;">If you didn't request this code, you can safely ignore this email.</p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:32px 32px 40px;text-align:center;">
+              <div style="border-top:1px solid #EDE3D0;margin:0 0 24px;"></div>
+              <p style="font-family:'DM Sans',Helvetica,Arial,sans-serif;font-size:11px;color:#3D3020;opacity:0.3;margin:0;">Lagos, Nigeria &middot; &copy; 2026 Awahouse</p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+}
 
 export const authRouter = router({
   sendOtp: publicProcedure
@@ -37,13 +93,11 @@ export const authRouter = router({
         console.log('═══════════════════════════════════════');
         console.log(`  🔑 [DEV ONLY] OTP for ${input.email}: ${code}`);
         console.log('═══════════════════════════════════════');
-      }
-
-      const supabase = createServerSupabaseClient();
-      if (supabase) {
-        await supabase.auth.signInWithOtp({
-          email: input.email,
-          options: { data: { role: input.role } },
+      } else {
+        await resendClient.sendEmail({
+          to: input.email,
+          subject: 'Your Awahouse verification code',
+          html: buildOtpEmailHtml(code),
         });
       }
 
@@ -53,39 +107,33 @@ export const authRouter = router({
   verifyOtp: publicProcedure
     .input(verifyOtpInput)
     .mutation(async ({ input }) => {
-      const supabase = createServerSupabaseClient();
-      let supabaseUserId: string | null = null;
-
-      if (supabase) {
-        const { data, error } = await supabase.auth.verifyOtp({
-          email: input.email,
-          token: input.code,
-          type: 'email',
-        });
-        if (!error && data.user) {
-          supabaseUserId = data.user.id;
-        }
-      }
-
-      if (!supabaseUserId && !verifyOtp(input.email, input.code)) {
+      if (!verifyOtp(input.email, input.code)) {
         throw new TRPCError({
           code: 'UNAUTHORIZED',
           message: 'Invalid or expired OTP',
         });
       }
 
-      if (supabaseUserId && input.password && supabase) {
-        await supabase.auth.admin.updateUserById(supabaseUserId, {
-          password: input.password,
-        });
-      }
-
+      const supabase = createServerSupabaseClient();
       const existingUser = await prisma.user.findUnique({
         where: { email: input.email },
       });
 
       if (!existingUser) {
         const newUserRole = input.role ?? 'tenant';
+
+        let supabaseUserId: string | null = null;
+        if (input.password && supabase) {
+          const { data: createdUser, error: createError } = await supabase.auth.admin.createUser({
+            email: input.email,
+            password: input.password,
+            email_confirm: true,
+          });
+          if (!createError && createdUser?.user) {
+            supabaseUserId = createdUser.user.id;
+          }
+        }
+
         const newUser = await prisma.user.create({
           data: {
             email: input.email,
@@ -97,7 +145,7 @@ export const authRouter = router({
         });
 
         let sessionToken: string | null = null;
-        if (input.password && supabase) {
+        if (input.password && supabase && supabaseUserId) {
           const { data: signInData } = await supabase.auth.signInWithPassword({
             email: input.email,
             password: input.password,
