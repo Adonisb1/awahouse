@@ -135,7 +135,7 @@ export default function ExplorePage() {
                   title={prop.title}
                   lga={prop.lga ?? ''}
                   priceYearlyKobo={Number(prop.priceKobo)}
-                  imageUrl={prop.images?.[0]?.signedUrl ?? null}
+                  imageUrl={prop.images?.[0]?.url ?? null}
                   verificationStatus={prop.verificationBadge as 'VERIFIED' | 'PENDING' | 'DOCS_SUBMITTED' | 'TITLE_CONFIRMED'}
                   rating={4.9} // Mock rating for now as it's computed
                   reviewCount={12}

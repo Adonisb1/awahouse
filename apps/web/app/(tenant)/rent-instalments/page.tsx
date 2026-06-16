@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ShieldCheck } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/Card';
@@ -148,6 +149,7 @@ export default function RentInstalmentsPage() {
           </p>
         </div>
       )}
+    </div>
     </div>
   );
 }

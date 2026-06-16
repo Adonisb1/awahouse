@@ -7,7 +7,7 @@ const nextConfig = {
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: '**.r2.cloudflarestorage.com',
+        hostname: 'res.cloudinary.com',
       },
       {
         protocol: 'https',

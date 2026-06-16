@@ -4,7 +4,6 @@ import { prisma } from '@awahouse/db';
 import { paymentRouter } from '@/lib/payments/router';
 import { paystackClient } from '@/lib/paystack/client';
 import { decrypt } from '@/lib/crypto/encrypt';
-import { scheduleEscrowJobs } from '@/workers/scheduler';
 import type { EscrowStatus } from '@awahouse/types';
 
 type StateTransition = {
@@ -296,6 +295,7 @@ export class EscrowService {
         where,
         include: {
           property: { select: { id: true, title: true, lga: true } },
+          tenant: { select: { id: true, firstName: true, lastName: true } },
         },
         orderBy: { createdAt: 'desc' },
         skip: (page - 1) * limit,
@@ -349,12 +349,6 @@ export class EscrowService {
         },
       }),
     ]);
-
-    if (toStatus === 'key_handover_pending') {
-      scheduleEscrowJobs(escrowId).catch((err) =>
-        console.error(`[escrow] Failed to schedule auto-release for ${escrowId}:`, err),
-      );
-    }
 
     return updated;
   }

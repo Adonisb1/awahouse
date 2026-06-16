@@ -87,7 +87,7 @@ function EscrowInitiateForm() {
 
   const priceKobo = Number(property.priceKobo);
   const platformFeeKobo = Math.floor(priceKobo * 0.015);
-  const imageUrl = property.images?.[0]?.signedUrl ?? null;
+  const imageUrl = property.images?.[0]?.url ?? null;
   const badgeType = property.verificationBadge as BadgeType;
 
   const handleSubmit = () => {

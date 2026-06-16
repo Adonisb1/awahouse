@@ -14,7 +14,7 @@ import Link from 'next/link';
 
 export function TenantDashboardView() {
   const router = useRouter();
-  const { data: propertiesData } = trpc.properties.list.useQuery({ limit: 4 });
+  const { data: propertiesData } = trpc.properties.search.useQuery({ limit: 4 });
   const { data: verifications } = trpc.verification.checkStatus.useQuery();
 
   const hasNinApproved = verifications?.verifications?.some(
@@ -65,7 +65,7 @@ export function TenantDashboardView() {
           </div>
           
           <div className="grid grid-cols-2 gap-4">
-             {propertiesData?.items.map((prop) => (
+             {propertiesData?.properties.map((prop) => (
                 <div key={prop.id} className="bg-white border border-outline-variant rounded-card overflow-hidden shadow-sm hover:border-terra transition-colors cursor-pointer" onClick={() => router.push(`/property/${prop.id}`)}>
                     <div className="h-32 bg-sand-warm">
                        {prop.images?.[0] && <img src={prop.images[0].url} alt={prop.title} className="w-full h-full object-cover" />}

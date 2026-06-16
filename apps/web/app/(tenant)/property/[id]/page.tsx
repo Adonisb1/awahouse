@@ -61,9 +61,9 @@ export default function PropertyDetailPage() {
   return (
     <div className="flex flex-col min-h-screen bg-sand pb-[100px]">
       <div className="relative h-[300px] w-full bg-sand-warm overflow-hidden">
-        {currentImage?.signedUrl ? (
+        {currentImage?.url ? (
           <img
-            src={currentImage.signedUrl}
+            src={currentImage.url}
             alt={property.title}
             className="w-full h-full object-cover"
           />

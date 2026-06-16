@@ -22,11 +22,11 @@ async function logTransition(
 export async function processAutoRelease(escrowId: string) {
   const escrow = await prisma.escrowTransaction.findUnique({ where: { id: escrowId } });
   if (!escrow || escrow.isDeleted) {
-    console.warn(`[worker] Auto-release: escrow ${escrowId} not found`);
+    console.warn(`[cron] Auto-release: escrow ${escrowId} not found`);
     return;
   }
   if (escrow.status !== 'key_handover_pending') {
-    console.log(`[worker] Auto-release: escrow ${escrowId} status is ${escrow.status}, skipping`);
+    console.log(`[cron] Auto-release: escrow ${escrowId} status is ${escrow.status}, skipping`);
     return;
   }
 
@@ -38,7 +38,7 @@ export async function processAutoRelease(escrowId: string) {
   await notifyHandoverConfirmed(escrowId);
   await escrowService.payout(escrowId);
 
-  console.log(`[worker] Auto-release: escrow ${escrowId} completed`);
+  console.log(`[cron] Auto-release: escrow ${escrowId} completed`);
 }
 
 export async function processRemindHandover(escrowId: string, hoursRemaining: number) {
@@ -52,7 +52,7 @@ export async function processRemindHandover(escrowId: string, hoursRemaining: nu
     `/escrow/${escrowId}`,
   );
 
-  console.log(`[worker] Reminder: escrow ${escrowId} — ${hoursRemaining}h remaining`);
+  console.log(`[cron] Reminder: escrow ${escrowId} — ${hoursRemaining}h remaining`);
 }
 
 export async function processInstalmentCharge(instalmentId: string) {
@@ -94,14 +94,14 @@ export async function processInstalmentCharge(instalmentId: string) {
       userId: instalment.userId,
       title: 'InstalmentDue',
       body: `Your monthly rent instalment of ₦${(Number(instalment.amountKobo) / 100).toLocaleString()} is due. Pay now to avoid a missed payment penalty.`,
-      link: `/rent-instalments`,
+      link: '/rent-instalments',
       email: tenantEmail,
       phone: instalment.user.phone ?? undefined,
     });
 
-    console.log(`[worker] Instalment charge initiated: ${instalmentId} — ${result.checkoutUrl}`);
+    console.log(`[cron] Instalment charge initiated: ${instalmentId} — ${result.checkoutUrl}`);
   } catch (err) {
-    console.error(`[worker] Instalment charge failed: ${instalmentId}`, err);
+    console.error(`[cron] Instalment charge failed: ${instalmentId}`, err);
     if ((instalment.retryCount ?? 0) >= 3) {
       await prisma.rentInstalment.update({
         where: { id: instalmentId },
@@ -117,7 +117,7 @@ export async function processInstalmentCharge(instalmentId: string) {
 }
 
 export async function processScanOverdue() {
-  console.log('[worker] Scanning overdue instalments...');
+  console.log('[cron] Scanning overdue instalments...');
   const result = await rentScoreService.scanOverdueInstalments();
-  console.log(`[worker] Overdue scan complete — ${result.processed} processed`);
+  console.log(`[cron] Overdue scan complete — ${result.processed} processed`);
 }
