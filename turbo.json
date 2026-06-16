@@ -1,6 +1,5 @@
 {
   "$schema": "https://turbo.build/schema.json",
-  "globalDotenv": [".env"],
   "globalPassThroughEnv": [
     "NODE_ENV",
     "SUPABASE_SERVICE_ROLE_KEY",
