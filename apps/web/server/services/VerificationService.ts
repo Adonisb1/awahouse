@@ -2,7 +2,7 @@ import { TRPCError } from '@trpc/server';
 import bcrypt from 'bcryptjs';
 import { prisma } from '@awahouse/db';
 import { verifyNin } from '@/lib/dojah/client';
-import { uploadFile, getSignedUrl } from '@/lib/r2/client';
+import { uploadFile, getSignedUrl } from '@/lib/cloudinary/client';
 import { notificationService } from './NotificationService';
 import type { VerificationType } from '@awahouse/types';
 
@@ -85,14 +85,14 @@ export class VerificationService {
     fileType: string,
     fileBase64: string,
   ) {
-    const ext = fileType.split('/')[1] ?? 'bin';
-    const key = `verifications/${userId}/${type}/${Date.now()}.${ext}`;
+    const publicId = `${userId}-${type}`;
 
-    const buffer = Buffer.from(fileBase64, 'base64');
-    await uploadFile(key, buffer, fileType);
+    const { publicId: cloudinaryId } = await uploadFile(fileBase64, {
+      folder: 'awahouse/verifications',
+      publicId,
+    });
 
-    const signedUrl = await getSignedUrl(key);
-    const documentUrl = signedUrl ?? key;
+    const documentUrl = getSignedUrl(cloudinaryId);
 
     const verification = await prisma.verification.upsert({
       where: { userId_type: { userId, type } },
@@ -102,7 +102,7 @@ export class VerificationService {
         type: type as VerificationType,
         status: 'pending',
         documentUrl,
-        metadata: { fileName, fileType },
+        metadata: { fileName, fileType, cloudinaryId },
       },
     });
 

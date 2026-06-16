@@ -11,8 +11,7 @@
   "dependencies": {
     "@awahouse/db": "workspace:*",
     "@awahouse/types": "workspace:*",
-    "@aws-sdk/client-s3": "^3.575.0",
-    "@aws-sdk/s3-request-presigner": "^3.575.0",
+    "cloudinary": "^2.5.0",
     "@hookform/resolvers": "^3.6.0",
     "@radix-ui/react-dialog": "^1.0.5",
     "@radix-ui/react-dropdown-menu": "^2.0.6",

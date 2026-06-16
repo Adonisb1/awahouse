@@ -1,10 +1,9 @@
 import { TRPCError } from '@trpc/server';
 import { Prisma, prisma } from '@awahouse/db';
 import crypto from 'crypto';
-import sharp from 'sharp';
 import type { CreatePropertyInput, UpdatePropertyInput, PropertySearchInput } from '../schemas/properties';
 import { verificationService } from './VerificationService';
-import { uploadFile, getSignedUrl } from '@/lib/r2/client';
+import { uploadFile, getImageUrl } from '@/lib/cloudinary/client';
 
 export class PropertyService {
   async create(userId: string, input: CreatePropertyInput) {
@@ -91,15 +90,7 @@ export class PropertyService {
       throw new TRPCError({ code: 'NOT_FOUND', message: 'Property not found' });
     }
 
-    const imagesWithUrls = await Promise.all(
-      property.images.map(async (img) => ({
-        ...img,
-        signedUrl: await getSignedUrl(img.url),
-        signedThumbnail: img.thumbnail ? await getSignedUrl(img.thumbnail) : null,
-      })),
-    );
-
-    return { ...property, images: imagesWithUrls };
+    return { ...property, images: property.images };
   }
 
   async search(input: PropertySearchInput) {
@@ -175,19 +166,7 @@ export class PropertyService {
       }),
     ]);
 
-    const propertiesWithUrls = await Promise.all(
-      properties.map(async (p) => ({
-        ...p,
-        images: await Promise.all(
-          p.images.map(async (img) => ({
-            ...img,
-            signedUrl: await getSignedUrl(img.url),
-          })),
-        ),
-      })),
-    );
-
-    return { properties: propertiesWithUrls, total, page: input.page, limit: input.limit };
+    return { properties, total, page: input.page, limit: input.limit };
   }
 
   async listMyProperties(userId: string) {
@@ -214,29 +193,22 @@ export class PropertyService {
     for (let i = 0; i < images.length; i++) {
       const img = images[i]!;
       const imageId = crypto.randomUUID();
-      const ext = 'webp';
-      const key = `properties/${propertyId}/images/${imageId}.${ext}`;
-      const thumbKey = `properties/${propertyId}/images/${imageId}_thumb.${ext}`;
 
-      const buffer = Buffer.from(img.fileBase64, 'base64');
-
-      const resized = await sharp(buffer)
-        .resize(1920, 1080, { fit: 'inside', withoutEnlargement: true })
-        .webp()
-        .toBuffer();
-      const thumbnail = await sharp(buffer)
-        .resize(400, 300, { fit: 'cover' })
-        .webp()
-        .toBuffer();
-
-      await uploadFile(key, resized, 'image/webp');
-      await uploadFile(thumbKey, thumbnail, 'image/webp');
+      const { url, publicId } = await uploadFile(img.fileBase64, {
+        folder: `awahouse/properties/${propertyId}`,
+        publicId: imageId,
+        type: 'upload',
+        eager: [
+          { width: 1920, height: 1080, crop: 'limit', format: 'webp' },
+          { width: 400, height: 300, crop: 'fill', format: 'webp' },
+        ],
+      });
 
       const dbImage = await prisma.propertyImage.create({
         data: {
           propertyId,
-          url: key,
-          thumbnail: thumbKey,
+          url,
+          thumbnail: getImageUrl(publicId, 'w_400,h_300,c_fill,f_webp'),
           alt: img.fileName,
           sortOrder: i,
         },
@@ -244,8 +216,8 @@ export class PropertyService {
 
       uploaded.push({
         id: dbImage.id,
-        url: key,
-        thumbnail: thumbKey,
+        url,
+        thumbnail: getImageUrl(publicId, 'w_400,h_300,c_fill,f_webp'),
       });
     }
 
