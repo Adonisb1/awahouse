@@ -93,13 +93,13 @@ export const authRouter = router({
         console.log('═══════════════════════════════════════');
         console.log(`  🔑 [DEV ONLY] OTP for ${input.email}: ${code}`);
         console.log('═══════════════════════════════════════');
-      } else {
-        await resendClient.sendEmail({
-          to: input.email,
-          subject: 'Your Awahouse verification code',
-          html: buildOtpEmailHtml(code),
-        });
       }
+
+      await resendClient.sendEmail({
+        to: input.email,
+        subject: 'Your Awahouse verification code',
+        html: buildOtpEmailHtml(code),
+      });
 
       return { success: true };
     }),
