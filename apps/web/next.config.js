@@ -17,6 +17,12 @@ const nextConfig = {
   },
   experimental: {
     optimizePackageImports: ['lucide-react', '@radix-ui/react-icons'],
+    outputFileTracingIncludes: {
+      '/**': [
+        '../../node_modules/.prisma/client/*.so.node',
+        '../../node_modules/@prisma/client/*.so.node',
+      ],
+    },
   },
   async redirects() {
     return [
