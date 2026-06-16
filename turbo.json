@@ -1,6 +1,28 @@
 {
   "$schema": "https://turbo.build/schema.json",
-  "globalDependencies": ["**/.env.*local"],
+  "globalDotenv": [".env"],
+  "globalPassThroughEnv": [
+    "NODE_ENV",
+    "SUPABASE_SERVICE_ROLE_KEY",
+    "DATABASE_URL",
+    "DIRECT_URL",
+    "PAYSTACK_SECRET_KEY",
+    "PAYSTACK_PUBLIC_KEY",
+    "NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY",
+    "DOJAH_APP_ID",
+    "DOJAH_API_KEY",
+    "DOJAH_BASE_URL",
+    "TERMII_API_KEY",
+    "TERMII_SENDER_ID",
+    "RESEND_API_KEY",
+    "CLOUDINARY_CLOUD_NAME",
+    "CLOUDINARY_API_KEY",
+    "CLOUDINARY_API_SECRET",
+    "UPSTASH_REDIS_REST_URL",
+    "UPSTASH_REDIS_REST_TOKEN",
+    "NEXT_PUBLIC_SUPABASE_URL",
+    "NEXT_PUBLIC_SUPABASE_ANON_KEY"
+  ],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
