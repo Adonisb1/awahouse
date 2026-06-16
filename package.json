@@ -10,7 +10,6 @@
     "test:run": "vitest run",
     "test:e2e": "playwright test",
     "test:coverage": "vitest run --coverage",
-    "worker": "tsx apps/web/workers/index.ts",
     "email:preview": "email dev --dir apps/web/emails",
     "db:generate": "pnpm --filter @awahouse/db generate",
     "db:migrate": "pnpm --filter @awahouse/db migrate",
@@ -23,6 +22,9 @@
     "vitest": "^1.6.0",
     "@playwright/test": "^1.44.0",
     "prettier": "^3.2.0"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": ["esbuild"]
   },
   "packageManager": "pnpm@10.26.1",
   "engines": {
