@@ -118,10 +118,10 @@ export default function ExplorePage() {
             </button>
           </div>
 
-          <div className="flex gap-4 overflow-x-auto px-4 pb-4 no-scrollbar">
+          <div className="flex gap-4 overflow-x-auto px-4 pb-4 no-scrollbar md:grid md:grid-cols-2 lg:grid-cols-3 md:overflow-visible">
             {isLoading ? (
               [1, 2, 3].map((i) => (
-                <div key={i} className="w-[260px] h-[280px] bg-white rounded-card animate-pulse shadow-sm flex flex-col p-4 gap-4">
+                <div key={i} className="w-[260px] md:w-full h-[280px] bg-white rounded-card animate-pulse shadow-sm flex flex-col p-4 gap-4">
                   <div className="w-full h-[160px] bg-sand-warm rounded-xl" />
                   <div className="w-3/4 h-5 bg-sand-warm rounded-full" />
                   <div className="w-1/2 h-4 bg-sand-warm rounded-full" />
@@ -129,23 +129,24 @@ export default function ExplorePage() {
               ))
             ) : properties && properties.length > 0 ? (
               properties.map((prop) => (
-                <PropertyCard
-                  key={prop.id}
-                  id={prop.id}
-                  title={prop.title}
-                  lga={prop.lga ?? ''}
-                  priceYearlyKobo={Number(prop.priceKobo)}
-                  imageUrl={prop.images?.[0]?.url ?? null}
-                  verificationStatus={prop.verificationBadge as 'VERIFIED' | 'PENDING' | 'DOCS_SUBMITTED' | 'TITLE_CONFIRMED'}
-                  rating={4.9} // Mock rating for now as it's computed
-                  reviewCount={12}
-                  isSaved={false}
-                  onSave={() => {}}
-                  onClick={(id) => router.push(`/property/${id}`)}
-                />
+                <div key={prop.id} className="w-[260px] md:w-full flex-shrink-0 md:flex-shrink">
+                  <PropertyCard
+                    id={prop.id}
+                    title={prop.title}
+                    lga={prop.lga ?? ''}
+                    priceYearlyKobo={Number(prop.priceKobo)}
+                    imageUrl={prop.images?.[0]?.url ?? null}
+                    verificationStatus={prop.verificationBadge as 'VERIFIED' | 'PENDING' | 'DOCS_SUBMITTED' | 'TITLE_CONFIRMED'}
+                    rating={4.9}
+                    reviewCount={12}
+                    isSaved={false}
+                    onSave={() => {}}
+                    onClick={(id) => router.push(`/property/${id}`)}
+                  />
+                </div>
               ))
             ) : (
-              <div className="w-full py-12 flex flex-col items-center justify-center text-muted">
+              <div className="w-full py-12 flex flex-col items-center justify-center text-muted col-span-full">
                  <ShieldCheck size={48} className="opacity-20 mb-4" />
                  <p className="font-bold text-sm">No properties found</p>
               </div>
@@ -157,22 +158,24 @@ export default function ExplorePage() {
         <section className="px-4 mb-8">
           <motion.div
             whileHover={{ scale: 1.01 }}
-            className="rounded-card bg-gradient-to-br from-charcoal to-terra-dark p-6 text-white shadow-lg relative overflow-hidden group"
+            className="rounded-card bg-gradient-to-br from-charcoal to-terra-dark p-6 md:p-10 text-white shadow-lg relative overflow-hidden group"
           >
-            <div className="absolute top-[-20px] right-[-20px] w-32 h-32 bg-white/10 rounded-full blur-2xl group-hover:bg-white/20 transition-all" />
-            <div className="relative z-10">
-              <span className="font-mono text-[10px] uppercase tracking-widest text-white/60 mb-2 block">
-                ✦ PREMIUM FEATURE
-              </span>
-              <h3 className="font-playfair text-xl font-bold mb-2">
-                Stop paying rent <br /> upfront. Pay monthly.
-              </h3>
-              <p className="text-[12px] text-white/80 mb-5 max-w-[200px] leading-relaxed">
-                100% interest-free. Secured with Awahouse Escrow protection.
-              </p>
+            <div className="absolute top-[-20px] right-[-20px] w-32 h-32 md:w-64 md:h-64 bg-white/10 rounded-full blur-2xl group-hover:bg-white/20 transition-all" />
+            <div className="relative z-10 md:flex md:items-center md:justify-between">
+              <div className="md:max-w-md">
+                <span className="font-mono text-[10px] uppercase tracking-widest text-white/60 mb-2 block">
+                  ✦ PREMIUM FEATURE
+                </span>
+                <h3 className="font-playfair text-xl md:text-3xl font-bold mb-2">
+                  Stop paying rent <br className="hidden md:block" /> upfront. Pay monthly.
+                </h3>
+                <p className="text-[12px] md:text-sm text-white/80 mb-5 md:mb-0 max-w-[200px] md:max-w-none leading-relaxed">
+                  100% interest-free. Secured with Awahouse Escrow protection.
+                </p>
+              </div>
               <button 
                 onClick={() => router.push('/escrow')}
-                className="h-10 px-5 rounded-button bg-white text-terra-dark font-bold text-xs flex items-center gap-2 active:scale-95 transition-transform"
+                className="h-10 md:h-12 px-5 md:px-8 rounded-button bg-white text-terra-dark font-bold text-xs md:text-sm flex items-center gap-2 active:scale-95 transition-transform shrink-0"
               >
                 <ShieldCheck size={16} />
                 Secure with Escrow
@@ -187,9 +190,9 @@ export default function ExplorePage() {
             <h3 className="font-playfair text-xl font-bold text-charcoal">Top Vetted Agents</h3>
             <button className="text-terra font-bold text-xs">View all</button>
           </div>
-          <div className="space-y-3">
+          <div className="space-y-3 md:grid md:grid-cols-2 lg:grid-cols-3 md:gap-4 md:space-y-0">
             {agentsLoading ? (
-              [1, 2, 3].map((i) => (
+              [1, 2].map((i) => (
                 <div key={i} className="h-[72px] bg-white rounded-card animate-pulse shadow-sm" />
               ))
             ) : agents.length > 0 ? (
@@ -208,7 +211,7 @@ export default function ExplorePage() {
                 />
               ))
             ) : (
-              <div className="bg-white border border-outline-variant rounded-card p-8 text-center text-muted text-sm">
+              <div className="bg-white border border-outline-variant rounded-card p-8 text-center text-muted text-sm col-span-full">
                 No verified agents found.
               </div>
             )}

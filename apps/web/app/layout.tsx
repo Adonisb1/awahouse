@@ -44,8 +44,14 @@ export default function RootLayout({
       lang="en"
       className={`${playfair.variable} ${dmSans.variable} ${dmMono.variable} h-full`}
     >
-      <body className="font-sans bg-sand min-h-full text-charcoal selection:bg-terra-50">
-        <Providers>{children}</Providers>
+      <body className="font-sans bg-sand min-h-full text-charcoal selection:bg-terra-50 flex flex-col items-center">
+        <Providers>
+          <div className="w-full max-w-[430px] md:max-w-none md:flex md:justify-center min-h-screen">
+            <div className="w-full md:max-w-6xl md:px-8 lg:px-12">
+              {children}
+            </div>
+          </div>
+        </Providers>
       </body>
     </html>
   );
