@@ -14,7 +14,8 @@
     "db:generate": "pnpm --filter @awahouse/db generate",
     "db:migrate": "pnpm --filter @awahouse/db migrate",
     "db:studio": "pnpm --filter @awahouse/db studio",
-    "db:seed": "pnpm --filter @awahouse/db seed"
+    "db:seed": "pnpm --filter @awahouse/db seed",
+    "postinstall": "pnpm db:generate"
   },
   "devDependencies": {
     "@playwright/test": "^1.44.0",
