@@ -86,16 +86,11 @@ export const agentRouter = router({
       },
     });
 
-    const ratingAggs = await Promise.all(
-      agents.map((agent) =>
-        prisma.review.aggregate({
-          where: { revieweeId: agent.id, isPublished: true },
-          _avg: { rating: true },
-        }),
-      ),
-    );
-
-    return agents.map((agent, i) => {
+    return agents.map((agent) => {
+      const ratings = agent.reviewsReceived.map((r) => r.rating);
+      const avgRating = ratings.length > 0
+        ? ratings.reduce((a, b) => a + b, 0) / ratings.length
+        : null;
       const approvedTypes = agent.verifications.map((v) => v.type);
       const profBodies = PROFESSIONAL_BODIES.filter((b) =>
         approvedTypes.includes(b),
@@ -107,7 +102,7 @@ export const agentRouter = router({
         firm: agent.landlordProfile?.firmName ?? null,
         avatarUrl: agent.avatarUrl,
         escrowCount: agent._count.escrowAsAgent,
-        rating: ratingAggs[i]!._avg.rating ?? null,
+        rating: avgRating,
         isOnline: false,
         professionalBodies: profBodies.map(
           (b) => b.toUpperCase() as 'LASRERA' | 'ESVARBON' | 'NIESV' | 'AEAN' | 'ERCAAN' | 'REDAN',

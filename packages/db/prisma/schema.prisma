@@ -161,7 +161,10 @@ model Property {
 
   @@index([lga])
   @@index([type])
-  @@index([isAvailable, isDeleted])
+  @@index([ownerId])
+  @@index([priceKobo])
+  @@index([createdAt])
+  @@index([isAvailable, isDeleted, verificationBadge])
   @@map("properties")
 }
 
@@ -214,6 +217,8 @@ model Review {
   @@unique([reviewerId, escrowId])
   @@index([propertyId])
   @@index([revieweeId])
+  @@index([reviewerId])
+  @@index([createdAt])
   @@map("reviews")
 }
 
@@ -232,6 +237,7 @@ model Verification {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, type])
+  @@index([status])
   @@map("verifications")
 }
 
@@ -269,7 +275,10 @@ model EscrowTransaction {
 
   @@index([tenantId])
   @@index([landlordId])
+  @@index([agentId])
   @@index([status])
+  @@index([isDeleted])
+  @@index([createdAt])
   @@index([paymentReference])
   @@map("escrow_transactions")
 }
