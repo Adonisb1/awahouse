@@ -26,12 +26,22 @@ function AuthPage() {
   const [error, setError] = React.useState('');
   const [otpCode, setOtpCode] = React.useState('');
   const [loginLoading, setLoginLoading] = React.useState(false);
+  const [countryCode, setCountryCode] = React.useState('+234');
   const [form, setForm] = React.useState({
     fullName: '',
     phone: '',
     email: '',
     password: '',
   });
+
+  const COUNTRIES = [
+    { code: '+234', label: '🇳🇬 Nigeria (+234)' },
+    { code: '+1', label: '🇺🇸 USA/Canada (+1)' },
+    { code: '+44', label: '🇬🇧 UK (+44)' },
+    { code: '+254', label: '🇰🇪 Kenya (+254)' },
+    { code: '+27', label: '🇿🇦 South Africa (+27)' },
+    { code: '+971', label: '🇦🇪 UAE (+971)' },
+  ] as const;
 
   const sendOtpMutation = trpc.auth.sendOtp.useMutation();
   const verifyOtpMutation = trpc.auth.verifyOtp.useMutation();
@@ -69,6 +79,7 @@ function AuthPage() {
   const handleVerifyOtp = async () => {
     try {
       const names = form.fullName.trim().split(/\s+/);
+      const fullPhone = form.phone ? `${countryCode}${form.phone.replace(/\D/g, '')}` : undefined;
       const result = await verifyOtpMutation.mutateAsync({
         email: form.email,
         code: otpCode,
@@ -76,6 +87,7 @@ function AuthPage() {
         lastName: names.slice(1).join(' ') || '',
         role: (pendingRole as 'tenant' | 'landlord' | 'agent') ?? 'tenant',
         password: form.password,
+        phone: fullPhone,
       });
 
       if (result.success && result.userId) {
@@ -157,255 +169,318 @@ function AuthPage() {
   };
 
   return (
-    <div className="min-h-screen bg-sand flex flex-col justify-center py-12 px-6">
-      <div className="w-full max-w-md mx-auto">
-        <div className="flex justify-center items-center mb-10">
-          <h1 className="font-playfair italic font-black text-2xl text-terra">Awahouse</h1>
+    <div className="min-h-screen bg-sand flex flex-col justify-center py-12 px-6 lg:px-12">
+      <div className="w-full max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-center gap-12 lg:gap-20">
+        
+        {/* Left Column: Branding & Benefits (Desktop Only) */}
+        <div className="hidden md:flex flex-col flex-1 max-w-lg">
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.6 }}
+          >
+            <h1 className="font-playfair italic font-black text-6xl text-terra mb-8">Awahouse</h1>
+            <h2 className="font-playfair text-4xl font-bold text-charcoal leading-tight mb-6">
+              Join the most trusted <br /> 
+              <span className="text-terra italic">property marketplace</span> in Lagos.
+            </h2>
+            
+            <div className="space-y-8 mt-12">
+              <div className="flex items-start gap-4">
+                <div className="p-3 bg-terra/10 rounded-2xl text-terra shrink-0">
+                  <ShieldCheck size={28} />
+                </div>
+                <div>
+                  <h4 className="font-bold text-charcoal text-lg">Verified by NIN</h4>
+                  <p className="text-muted leading-relaxed">Identity verification is mandatory for all users to ensure a safe and secure community.</p>
+                </div>
+              </div>
+              
+              <div className="flex items-start gap-4">
+                <div className="p-3 bg-success/10 rounded-2xl text-success shrink-0">
+                  <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <div>
+                  <h4 className="font-bold text-charcoal text-lg">Title Confirmed</h4>
+                  <p className="text-muted leading-relaxed">We manually verify property titles and documents so you can browse with absolute peace of mind.</p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-4">
+                <div className="p-3 bg-amber-100/50 rounded-2xl text-amber-700 shrink-0">
+                  <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <div>
+                  <h4 className="font-bold text-charcoal text-lg">Flexible Payments</h4>
+                  <p className="text-muted leading-relaxed">Unlock the ability to pay your rent monthly instead of upfront, exclusively on Awahouse.</p>
+                </div>
+              </div>
+            </div>
+          </motion.div>
         </div>
 
-        <div className="bg-white p-8 rounded-card shadow-card">
-          <AnimatePresence mode="wait">
-            {stage === 'details' || activeTab === 'login' ? (
-              <motion.div
-                key={`${activeTab}-details`}
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 10 }}
-              >
-                <div className="flex border-b border-outline-variant mb-10">
-                  <button
-                    onClick={() => { setActiveTab('signup'); setStage('details'); setError(''); }}
-                    className={cn(
-                      'flex-1 pb-4 text-sm font-bold transition-all duration-200 relative',
-                      activeTab === 'signup' ? 'text-terra-dark' : 'text-muted'
-                    )}
-                  >
-                    Sign Up
-                    {activeTab === 'signup' && (
-                      <motion.div layoutId="authTab" className="absolute bottom-0 left-0 right-0 h-[2.5px] bg-terra-dark" />
-                    )}
-                  </button>
-                  <button
-                    onClick={() => { setActiveTab('login'); setStage('details'); setError(''); }}
-                    className={cn(
-                      'flex-1 pb-4 text-sm font-bold transition-all duration-200 relative',
-                      activeTab === 'login' ? 'text-terra-dark' : 'text-muted'
-                    )}
-                  >
-                    Log In
-                    {activeTab === 'login' && (
-                      <motion.div layoutId="authTab" className="absolute bottom-0 left-0 right-0 h-[2.5px] bg-terra-dark" />
-                    )}
-                  </button>
-                </div>
+        {/* Right Column: Form */}
+        <div className="w-full max-w-md shrink-0">
+          <div className="flex justify-center items-center mb-10 md:hidden">
+            <h1 className="font-playfair italic font-black text-2xl text-terra">Awahouse</h1>
+          </div>
 
-                <h2 className="text-[22px] font-bold text-charcoal mb-2">
-                  {activeTab === 'signup' ? 'Create your account' : 'Welcome back'}
-                </h2>
-                <p className="text-sm text-muted mb-8 leading-relaxed">
-                  {activeTab === 'signup'
-                    ? "Join Lagos's verified property marketplace today."
-                    : "Sign in to continue your journey."}
-                </p>
-
-                {(error || urlError) && (
-                  <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl px-4 py-3 mb-6">
-                    {error || (urlError === 'auth_failed' ? 'Google sign-in failed. Please try again.' : urlError === 'no_email' ? 'No email returned from Google.' : urlError === 'supabase_not_configured' ? 'Google sign-in is not configured.' : 'Something went wrong.')}
-                  </div>
-                )}
-
-                <div className="space-y-6">
-                  {activeTab === 'signup' && (
-                    <Input
-                      label="Full Name (first name, surname)"
-                      placeholder="Enter your legal name"
-                      value={form.fullName}
-                      onChangeValue={(val) => setForm({ ...form, fullName: val })}
-                    />
-                  )}
-
-                  {activeTab === 'signup' && (
-                    <div className="space-y-1.5">
-                      <label className="block font-mono text-[11px] uppercase tracking-widest text-muted mb-1.5">
-                        Phone Number
-                      </label>
-                      <div className="flex gap-2">
-                        <div className="h-[52px] px-4 rounded-input border border-outline-variant bg-sand/30 flex items-center justify-center font-sans font-bold text-charcoal text-sm">
-                          +234
-                        </div>
-                        <Input
-                          placeholder="803 000 0000"
-                          value={form.phone}
-                          onChangeValue={(val) => setForm({ ...form, phone: val })}
-                          className="flex-1 bg-sand/30"
-                        />
-                      </div>
-                    </div>
-                  )}
-
-                  <Input
-                    label="Email Address"
-                    type="email"
-                    placeholder="name@example.com"
-                    value={form.email}
-                    onChangeValue={(val) => setForm({ ...form, email: val })}
-                    className="bg-sand/30"
-                  />
-
-                  <div>
-                    <Input
-                      label="Password"
-                      type={showPassword ? 'text' : 'password'}
-                      placeholder={activeTab === 'signup' ? 'At least 8 characters' : 'Enter your password'}
-                      value={form.password}
-                      onChangeValue={(val) => setForm({ ...form, password: val })}
-                      className="bg-sand/30 pr-10"
-                    />
+          <div className="bg-white p-8 rounded-card shadow-card">
+            <AnimatePresence mode="wait">
+              {stage === 'details' || activeTab === 'login' ? (
+                <motion.div
+                  key={`${activeTab}-details`}
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 10 }}
+                >
+                  <div className="flex border-b border-outline-variant mb-10">
                     <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="relative float-right -mt-[42px] mr-3 text-muted hover:text-charcoal"
-                      aria-label={showPassword ? 'Hide password' : 'Show password'}
+                      onClick={() => { setActiveTab('signup'); setStage('details'); setError(''); }}
+                      className={cn(
+                        'flex-1 pb-4 text-sm font-bold transition-all duration-200 relative',
+                        activeTab === 'signup' ? 'text-terra-dark' : 'text-muted'
+                      )}
                     >
-                      {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                      Sign Up
+                      {activeTab === 'signup' && (
+                        <motion.div layoutId="authTab" className="absolute bottom-0 left-0 right-0 h-[2.5px] bg-terra-dark" />
+                      )}
                     </button>
-
-                    {activeTab === 'signup' && (
-                      <div className="mt-3 grid grid-cols-2 gap-y-2 gap-x-4 px-1">
-                        {passwordRequirements.map((req, i) => {
-                          const isMet = req.test(form.password);
-                          return (
-                            <div key={i} className="flex items-center gap-2">
-                              <div className={cn(
-                                "h-1 w-1 rounded-full transition-colors duration-300",
-                                isMet ? "bg-success" : "bg-outline-variant"
-                              )} />
-                              <span className={cn(
-                                "text-[10px] font-mono uppercase tracking-tight transition-colors duration-300",
-                                isMet ? "text-success font-bold" : "text-muted"
-                              )}>
-                                {req.label}
-                              </span>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-
-                  {activeTab === 'signup' && (
-                    <div className="bg-success-bg border border-success/25 rounded-xl p-4 flex gap-3">
-                      <ShieldCheck className="text-success shrink-0" size={20} />
-                      <div className="text-sm text-success leading-relaxed">
-                        <span className="font-bold">NIN Verification Required</span>
-                        <p className="opacity-80">Identity verified after account creation for security.</p>
-                      </div>
-                    </div>
-                  )}
-
-                  {activeTab === 'signup' ? (
-                    <Button
-                      variant="primary"
-                      size="lg"
-                      fullWidth
-                      loading={sendOtpMutation.isPending}
-                      onClick={handleSendOtp}
-                      className="mt-4"
-                    >
-                      Create Account
-                    </Button>
-                  ) : (
-                    <Button
-                      variant="primary"
-                      size="lg"
-                      fullWidth
-                      loading={loginLoading}
-                      onClick={handleSignIn}
-                      className="mt-4"
+                    <button
+                      onClick={() => { setActiveTab('login'); setStage('details'); setError(''); }}
+                      className={cn(
+                        'flex-1 pb-4 text-sm font-bold transition-all duration-200 relative',
+                        activeTab === 'login' ? 'text-terra-dark' : 'text-muted'
+                      )}
                     >
                       Log In
-                    </Button>
+                      {activeTab === 'login' && (
+                        <motion.div layoutId="authTab" className="absolute bottom-0 left-0 right-0 h-[2.5px] bg-terra-dark" />
+                      )}
+                    </button>
+                  </div>
+
+                  <h2 className="text-[22px] font-bold text-charcoal mb-2">
+                    {activeTab === 'signup' ? 'Create your account' : 'Welcome back'}
+                  </h2>
+                  <p className="text-sm text-muted mb-8 leading-relaxed">
+                    {activeTab === 'signup'
+                      ? "Join Lagos's verified property marketplace today."
+                      : "Sign in to continue your journey."}
+                  </p>
+
+                  {(error || urlError) && (
+                    <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl px-4 py-3 mb-6">
+                      {error || (urlError === 'auth_failed' ? 'Google sign-in failed. Please try again.' : urlError === 'no_email' ? 'No email returned from Google.' : urlError === 'supabase_not_configured' ? 'Google sign-in is not configured.' : 'Something went wrong.')}
+                    </div>
                   )}
 
-                  <div className="flex items-center gap-4 my-8">
-                    <div className="flex-1 h-[1px] bg-outline-variant/30" />
-                    <span className="text-[10px] font-mono text-muted uppercase tracking-widest">— or —</span>
-                    <div className="flex-1 h-[1px] bg-outline-variant/30" />
+                  <div className="space-y-6">
+                    {activeTab === 'signup' && (
+                      <Input
+                        label="Full Name (first name, surname)"
+                        placeholder="Enter your legal name"
+                        value={form.fullName}
+                        onChangeValue={(val) => setForm({ ...form, fullName: val })}
+                      />
+                    )}
+
+                    {activeTab === 'signup' && (
+                      <div className="space-y-1.5">
+                        <label className="block font-mono text-[11px] uppercase tracking-widest text-muted mb-1.5">
+                          Phone Number
+                        </label>
+                        <div className="flex gap-2">
+                          <select
+                            value={countryCode}
+                            onChange={(e) => setCountryCode(e.target.value)}
+                            className="h-[52px] px-4 rounded-input border border-outline-variant bg-sand/30 font-sans font-bold text-charcoal text-sm w-[120px] flex-shrink-0 appearance-none bg-white"
+                          >
+                            {COUNTRIES.map((c) => (
+                              <option key={c.code} value={c.code}>
+                                {c.label}
+                              </option>
+                            ))}
+                          </select>
+                          <Input
+                            placeholder="803 000 0000"
+                            value={form.phone}
+                            onChangeValue={(val) => setForm({ ...form, phone: val.replace(/\D/g, '') })}
+                            className="flex-1 bg-sand/30"
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    <Input
+                      label="Email Address"
+                      type="email"
+                      placeholder="name@example.com"
+                      value={form.email}
+                      onChangeValue={(val) => setForm({ ...form, email: val })}
+                      className="bg-sand/30"
+                    />
+
+                    <div>
+                      <Input
+                        label="Password"
+                        type={showPassword ? 'text' : 'password'}
+                        placeholder={activeTab === 'signup' ? 'At least 8 characters' : 'Enter your password'}
+                        value={form.password}
+                        onChangeValue={(val) => setForm({ ...form, password: val })}
+                        className="bg-sand/30 pr-10"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="relative float-right -mt-[42px] mr-3 text-muted hover:text-charcoal"
+                        aria-label={showPassword ? 'Hide password' : 'Show password'}
+                      >
+                        {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                      </button>
+
+                      {activeTab === 'signup' && (
+                        <div className="mt-3 grid grid-cols-2 gap-y-2 gap-x-4 px-1">
+                          {passwordRequirements.map((req, i) => {
+                            const isMet = req.test(form.password);
+                            return (
+                              <div key={i} className="flex items-center gap-2">
+                                <div className={cn(
+                                  "h-1 w-1 rounded-full transition-colors duration-300",
+                                  isMet ? "bg-success" : "bg-outline-variant"
+                                )} />
+                                <span className={cn(
+                                  "text-[10px] font-mono uppercase tracking-tight transition-colors duration-300",
+                                  isMet ? "text-success font-bold" : "text-muted"
+                                )}>
+                                  {req.label}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+
+                    {activeTab === 'signup' && (
+                      <div className="bg-success-bg border border-success/25 rounded-xl p-4 flex gap-3">
+                        <ShieldCheck className="text-success shrink-0" size={20} />
+                        <div className="text-sm text-success leading-relaxed">
+                          <span className="font-bold">NIN Verification Required</span>
+                          <p className="opacity-80">Identity verified after account creation for security.</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {activeTab === 'signup' ? (
+                      <Button
+                        variant="primary"
+                        size="lg"
+                        fullWidth
+                        loading={sendOtpMutation.isPending}
+                        onClick={handleSendOtp}
+                        className="mt-4"
+                      >
+                        Create Account
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="primary"
+                        size="lg"
+                        fullWidth
+                        loading={loginLoading}
+                        onClick={handleSignIn}
+                        className="mt-4"
+                      >
+                        Log In
+                      </Button>
+                    )}
+
+                    <div className="flex items-center gap-4 my-8">
+                      <div className="flex-1 h-[1px] bg-outline-variant/30" />
+                      <span className="text-[10px] font-mono text-muted uppercase tracking-widest">— or —</span>
+                      <div className="flex-1 h-[1px] bg-outline-variant/30" />
+                    </div>
+
+                    <Button
+                      variant="ghost"
+                      size="lg"
+                      fullWidth
+                      loading={googleLoading}
+                      onClick={handleGoogleSignIn}
+                      className="bg-white border border-outline-variant text-charcoal hover:bg-gray-50"
+                      icon={
+                        <svg className="w-5 h-5" viewBox="0 0 24 24">
+                          <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
+                          <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
+                          <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05" />
+                          <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
+                        </svg>
+                      }
+                    >
+                      Continue with Google
+                    </Button>
                   </div>
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="otp"
+                  initial={{ opacity: 0, x: 10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -10 }}
+                  className="flex-1 flex flex-col"
+                >
+                  <h2 className="text-[22px] font-bold text-charcoal mb-2">Verify your email</h2>
+                  <p className="text-sm text-muted mb-8 leading-relaxed">
+                    We've sent a 6-digit code to <span className="font-bold text-charcoal">{form.email}</span>.
+                    Check your inbox (and spam) to continue.
+                  </p>
 
-                  <Button
-                    variant="ghost"
-                    size="lg"
-                    fullWidth
-                    loading={googleLoading}
-                    onClick={handleGoogleSignIn}
-                    className="bg-white border border-outline-variant text-charcoal hover:bg-gray-50"
-                    icon={
-                      <svg className="w-5 h-5" viewBox="0 0 24 24">
-                        <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
-                        <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
-                        <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05" />
-                        <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
-                      </svg>
-                    }
-                  >
-                    Continue with Google
-                  </Button>
-                </div>
-              </motion.div>
-            ) : (
-              <motion.div
-                key="otp"
-                initial={{ opacity: 0, x: 10 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -10 }}
-                className="flex-1 flex flex-col"
-              >
-                <h2 className="text-[22px] font-bold text-charcoal mb-2">Verify your email</h2>
-                <p className="text-sm text-muted mb-8 leading-relaxed">
-                  We've sent a 6-digit code to <span className="font-bold text-charcoal">{form.email}</span>.
-                  Check your inbox (and spam) to continue.
-                </p>
+                  {error && (
+                    <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl px-4 py-3 mb-4">
+                      {error}
+                    </div>
+                  )}
 
-                {error && (
-                  <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl px-4 py-3 mb-4">
-                    {error}
+                  <div className="space-y-6">
+                    <Input
+                      label="Enter 6-digit code"
+                      placeholder="000000"
+                      maxLength={6}
+                      value={otpCode}
+                      onChangeValue={setOtpCode}
+                      className="text-center text-2xl tracking-[0.5em] font-mono h-[64px] bg-sand/30"
+                    />
+
+                    <Button
+                      variant="primary"
+                      size="lg"
+                      fullWidth
+                      loading={verifyOtpMutation.isPending}
+                      disabled={otpCode.length !== 6}
+                      onClick={handleVerifyOtp}
+                    >
+                      Verify & Continue
+                    </Button>
+
+                    <ResendOtpButton onClick={handleSendOtp} />
+
+                    <button
+                      onClick={() => setStage('details')}
+                      className="w-full text-center text-sm font-bold text-muted hover:text-terra transition-colors"
+                    >
+                      ← Back to details
+                    </button>
                   </div>
-                )}
-
-                <div className="space-y-6">
-                  <Input
-                    label="Enter 6-digit code"
-                    placeholder="000000"
-                    maxLength={6}
-                    value={otpCode}
-                    onChangeValue={setOtpCode}
-                    className="text-center text-2xl tracking-[0.5em] font-mono h-[64px] bg-sand/30"
-                  />
-
-                  <Button
-                    variant="primary"
-                    size="lg"
-                    fullWidth
-                    loading={verifyOtpMutation.isPending}
-                    disabled={otpCode.length !== 6}
-                    onClick={handleVerifyOtp}
-                  >
-                    Verify & Continue
-                  </Button>
-
-                  <ResendOtpButton onClick={handleSendOtp} />
-
-                  <button
-                    onClick={() => setStage('details')}
-                    className="w-full text-center text-sm font-bold text-muted hover:text-terra transition-colors"
-                  >
-                    ← Back to details
-                  </button>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
         </div>
       </div>
     </div>

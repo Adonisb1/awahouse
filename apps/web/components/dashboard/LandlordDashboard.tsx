@@ -58,7 +58,7 @@ export function LandlordDashboardView() {
         }
       />
 
-      <div className="max-w-5xl mx-auto px-4 py-8">
+      <div className="max-w-6xl mx-auto px-4 py-8 lg:px-8">
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl px-4 py-3 mb-6">
             {error}
@@ -67,127 +67,135 @@ export function LandlordDashboardView() {
 
         <VerificationBanner status={verificationStatus} />
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
-          <div className="bg-white border border-outline-variant rounded-card p-6 shadow-sm">
-            <div className="font-mono text-[9px] uppercase text-muted tracking-widest mb-1">Listings</div>
-            <div className="font-playfair text-3xl font-bold text-terra-dark">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-12">
+          <div className="bg-white border border-outline-variant rounded-card p-6 shadow-sm flex flex-col justify-center min-h-[120px]">
+            <div className="font-mono text-[10px] uppercase text-muted tracking-widest mb-2">My Listings</div>
+            <div className="font-playfair text-4xl font-bold text-terra-dark">
               {listingsLoading ? '..' : properties.length}
             </div>
           </div>
-          <div className="bg-white border border-outline-variant rounded-card p-6 shadow-sm">
-            <div className="font-mono text-[9px] uppercase text-muted tracking-widest mb-1">Active Escrows</div>
-            <div className="font-playfair text-3xl font-bold text-terra-dark">
+          <div className="bg-white border border-outline-variant rounded-card p-6 shadow-sm flex flex-col justify-center min-h-[120px]">
+            <div className="font-mono text-[10px] uppercase text-muted tracking-widest mb-2">Active Escrows</div>
+            <div className="font-playfair text-4xl font-bold text-terra-dark">
               {escrowsData ? activeEscrows.length : '..'}
             </div>
           </div>
-          <div className="bg-white border border-outline-variant rounded-card p-6 shadow-sm">
-            <div className="font-mono text-[9px] uppercase text-muted tracking-widest mb-1">Total Payout</div>
-            <div className="font-playfair text-2xl font-bold text-terra-dark">
+          <div className="bg-white border border-outline-variant rounded-card p-6 shadow-sm flex flex-col justify-center min-h-[120px]">
+            <div className="font-mono text-[10px] uppercase text-muted tracking-widest mb-2">Total Payout</div>
+            <div className="font-playfair text-3xl font-bold text-terra-dark truncate">
               {escrowsData ? <KoboDisplay kobo={totalPayout} size="sm" /> : '..'}
             </div>
           </div>
-          <div className="bg-white border border-outline-variant rounded-card p-6 shadow-sm">
-            <div className="font-mono text-[9px] uppercase text-muted tracking-widest mb-1">Rating</div>
-            <div className="font-playfair text-3xl font-bold text-terra-dark">&mdash;</div>
+          <div className="bg-white border border-outline-variant rounded-card p-6 shadow-sm flex flex-col justify-center min-h-[120px]">
+            <div className="font-mono text-[10px] uppercase text-muted tracking-widest mb-2">Avg Rating</div>
+            <div className="font-playfair text-4xl font-bold text-terra-dark">&mdash;</div>
           </div>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-8">
-          <section className="md:col-span-1 space-y-8">
-            <div className="flex items-center justify-between">
-              <h3 className="font-display text-lg font-bold text-charcoal">Active Escrows</h3>
+        <div className="grid lg:grid-cols-12 gap-8 lg:gap-12">
+          <section className="lg:col-span-4 space-y-6">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="font-playfair text-xl font-bold text-charcoal">Active Escrows</h3>
               {activeEscrows.length > 0 && (
-                <Button size="sm" variant="ghost" onClick={() => router.push('/landlord/escrow')}>
-                  View all <ArrowRight className="h-3 w-3 ml-1" />
+                <Button size="sm" variant="ghost" onClick={() => router.push('/landlord/escrow')} className="text-xs font-bold text-terra">
+                  View all <ArrowRight className="h-3.5 w-3.5 ml-1" />
                 </Button>
               )}
             </div>
             {activeEscrows.length > 0 ? (
-              <div className="space-y-3">
+              <div className="space-y-4">
                 {activeEscrows.slice(0, 3).map((e) => (
                   <div
                     key={e.id}
-                    className="bg-white border border-outline-variant rounded-card p-4 shadow-sm cursor-pointer hover:border-terra transition-colors"
+                    className="bg-white border border-outline-variant rounded-card p-5 shadow-sm cursor-pointer hover:border-terra transition-all group"
                     onClick={() => router.push(`/landlord/escrow/${e.id}`)}
                   >
-                    <div className="flex items-center justify-between mb-1">
-                      <p className="font-semibold text-sm text-charcoal truncate">{e.property.title}</p>
+                    <div className="flex items-center justify-between mb-3">
                       <EscrowStatusChip status={e.status as EscrowStatus} />
+                      <span className="text-[10px] font-mono text-muted uppercase">Ref: {e.id.split('-')[0]}</span>
                     </div>
-                    <KoboDisplay kobo={Number(e.amountKobo)} size="sm" />
+                    <p className="font-bold text-base text-charcoal truncate mb-2 group-hover:text-terra transition-colors">{e.property.title}</p>
+                    <KoboDisplay kobo={Number(e.amountKobo)} size="md" color="terra" />
                   </div>
                 ))}
               </div>
             ) : (
-              <div className="bg-white border border-outline-variant rounded-card p-5 shadow-sm text-center text-muted text-sm py-10">
+              <div className="bg-white border border-outline-variant rounded-card p-8 shadow-sm text-center text-muted text-sm flex flex-col items-center justify-center min-h-[200px]">
+                <div className="w-12 h-12 bg-sand rounded-full flex items-center justify-center mb-4">
+                  <Wallet size={24} className="opacity-30" />
+                </div>
                 No active escrows yet.
               </div>
             )}
           </section>
 
-          <section className="md:col-span-2">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="font-display text-lg font-bold text-charcoal">My Listings</h3>
+          <section className="lg:col-span-8">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="font-playfair text-xl font-bold text-charcoal">My Listings</h3>
               <Button
                 variant="primary"
                 size="md"
-                className="gap-2"
+                className="gap-2 px-6"
                 onClick={() => router.push('/landlord/listings/new')}
               >
-                <Plus size={16} /> Add Listing
+                <Plus size={18} /> Add New Property
               </Button>
             </div>
             
             {listingsLoading ? (
                 <div className="space-y-4">
-                    {[1, 2].map(i => <div key={i} className="h-24 bg-white rounded-card animate-pulse shadow-sm" />)}
+                    {[1, 2, 3].map(i => <div key={i} className="h-28 bg-white rounded-card animate-pulse shadow-sm" />)}
                 </div>
             ) : properties.length > 0 ? (
-                <div className="space-y-4">
+                <div className="grid sm:grid-cols-2 gap-4">
                     {properties.map((prop) => (
-                        <div key={prop.id} className="bg-white border border-outline-variant rounded-card p-4 flex gap-4 shadow-sm hover:border-terra transition-colors">
-                        <div className="w-20 h-20 rounded-xl bg-sand-warm overflow-hidden shrink-0">
-                            {prop.images?.[0] ? (
-                                <img src={prop.images[0].url} alt={prop.title} className="w-full h-full object-cover" />
-                            ) : (
-                                <div className="w-full h-full bg-gradient-to-br from-terra/10 to-terra/5 flex items-center justify-center text-terra/30 font-playfair italic text-xl">A</div>
-                            )}
-                        </div>
-                        <div className="flex-1 min-w-0 flex flex-col justify-center">
-                            <h4 className="font-bold text-charcoal text-base truncate mb-1">{prop.title}</h4>
-                            <div className="flex items-center gap-2 mb-2">
-                              <span className="text-xs font-mono text-muted uppercase">{prop.lga}</span>
+                        <div key={prop.id} className="bg-white border border-outline-variant rounded-card p-4 flex flex-col gap-4 shadow-sm hover:shadow-md transition-all">
+                          <div className="flex gap-4">
+                            <div className="w-20 h-20 rounded-xl bg-sand-warm overflow-hidden shrink-0 border border-outline-variant/20">
+                                {prop.images?.[0] ? (
+                                    <img src={prop.images[0].url} alt={prop.title} className="w-full h-full object-cover" />
+                                ) : (
+                                    <div className="w-full h-full bg-gradient-to-br from-terra/10 to-terra/5 flex items-center justify-center text-terra/30 font-playfair italic text-xl">A</div>
+                                )}
                             </div>
-                            <div className="flex justify-between items-center">
-                              <div className="font-playfair font-bold text-terra-dark">
-                                <KoboDisplay kobo={Number(prop.priceKobo)} size="sm" />
-                              </div>
-                              <div className="flex gap-2">
-                                <Button 
-                                  variant="ghost" 
-                                  size="sm" 
-                                  className="h-8 w-8 p-0 rounded-full"
-                                  onClick={() => router.push(`/landlord/listings/${prop.id}/edit`)}
-                                >
-                                  <Edit2 size={14} />
-                                </Button>
-                                <Button 
-                                  variant="ghost" 
-                                  size="sm" 
-                                  className="h-8 w-8 p-0 rounded-full text-red-500 hover:text-red-600 hover:bg-red-50"
-                                  onClick={() => handleDelete(prop.id)}
-                                >
-                                  <Trash2 size={14} />
-                                </Button>
-                              </div>
+                            <div className="flex-1 min-w-0 flex flex-col justify-center">
+                                <h4 className="font-bold text-charcoal text-base truncate mb-1">{prop.title}</h4>
+                                <p className="text-xs font-mono text-muted uppercase mb-2">{prop.lga}</p>
+                                <div className="font-playfair font-bold text-terra-dark">
+                                  <KoboDisplay kobo={Number(prop.priceKobo)} size="sm" />
+                                </div>
                             </div>
-                        </div>
+                          </div>
+                          <div className="flex gap-2 pt-2 border-t border-sand">
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="flex-1 h-9 gap-2 bg-sand/30 hover:bg-sand/60 border-none text-xs font-bold"
+                              onClick={() => router.push(`/landlord/listings/${prop.id}/edit`)}
+                            >
+                              <Edit2 size={14} /> Edit Listing
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="w-12 h-9 p-0 rounded-lg text-red-500 hover:text-red-600 hover:bg-red-50"
+                              onClick={() => handleDelete(prop.id)}
+                            >
+                              <Trash2 size={16} />
+                            </Button>
+                          </div>
                         </div>
                     ))}
                 </div>
             ) : (
-                <div className="bg-white border border-outline-variant rounded-card p-10 text-center text-muted text-sm">
-                  No listings found. Create your first listing to get started.
+                <div className="bg-white border border-outline-variant rounded-card p-12 text-center text-muted text-sm shadow-sm">
+                  <div className="w-16 h-16 bg-sand rounded-full flex items-center justify-center mx-auto mb-6">
+                    <Building size={32} className="opacity-20" />
+                  </div>
+                  <p className="max-w-[240px] mx-auto leading-relaxed">
+                    No listings found. Create your first listing to start receiving verified tenants.
+                  </p>
+                  <Button variant="secondary" className="mt-6" onClick={() => router.push('/landlord/listings/new')}>Create Listing</Button>
                 </div>
             )}
           </section>

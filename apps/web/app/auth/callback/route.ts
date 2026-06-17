@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { prisma } from '@awahouse/db';
+import crypto from 'crypto';
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
@@ -40,8 +41,15 @@ export async function GET(request: Request) {
     return NextResponse.redirect(`${origin}/signup?error=no_email`);
   }
 
-  const existingUser = await prisma.user.findUnique({ where: { id: user.id } });
-  if (!existingUser) {
+  const existingUser = await prisma.user.findUnique({ where: { email: user.email } });
+  if (existingUser) {
+    if (!existingUser.avatarUrl && user.user_metadata?.avatar_url) {
+      await prisma.user.update({
+        where: { id: existingUser.id },
+        data: { avatarUrl: user.user_metadata.avatar_url },
+      });
+    }
+  } else {
     await prisma.user.create({
       data: {
         id: user.id,

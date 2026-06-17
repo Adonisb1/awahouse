@@ -60,6 +60,7 @@ export default function AgentProfilePage() {
   const deletePropertyMutation = trpc.properties.delete.useMutation({
     onSuccess: () => utils.properties.listMyProperties.invalidate()
   });
+  const updateProfileMutation = trpc.auth.updateProfile.useMutation();
 
   const handleSignOut = async () => {
     try {
@@ -536,7 +537,13 @@ export default function AgentProfilePage() {
               </div>
               <Input label="Real Estate Agency" value={profile?.landlordProfile?.firmName ?? ''} onChangeValue={() => {}} />
               <Input label="Email Address" value={profile?.email ?? ''} onChangeValue={() => {}} disabled />
-              <Input label="Mobile Number" value={profile?.phone ?? ''} onChangeValue={() => {}} />
+              <Input
+                label="Mobile Number"
+                value={profile?.phone ?? ''}
+                onChangeValue={(val) => {
+                  updateProfileMutation.mutate({ phone: val || undefined });
+                }}
+              />
 
               <Button fullWidth size="lg">Save Changes</Button>
             </section>

@@ -2,7 +2,7 @@ import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 import { router, publicProcedure, authedProcedure } from '../trpc';
 import {
-  sendOtpInput, verifyOtpInput, signInInput, signInWithGoogleInput,
+  sendOtpInput, verifyOtpInput, signInInput,
   switchRoleInput, updateProfileInput,
 } from '../schemas/auth';
 import { createServerSupabaseClient } from '@/lib/auth/supabase';
@@ -137,6 +137,7 @@ export const authRouter = router({
         const newUser = await prisma.user.create({
           data: {
             email: input.email,
+            phone: input.phone ?? null,
             firstName: input.firstName,
             lastName: input.lastName,
             roles: [newUserRole],
@@ -211,6 +212,7 @@ export const authRouter = router({
       if (!dbUser) {
         dbUser = await prisma.user.create({
           data: {
+            id: data.user.id,
             email: input.email,
             roles: ['tenant'],
             activeRole: 'tenant',
@@ -225,52 +227,6 @@ export const authRouter = router({
         activeRole: dbUser.activeRole,
         sessionToken: data.session?.access_token ?? null,
       };
-    }),
-
-  signInWithGoogle: publicProcedure
-    .input(signInWithGoogleInput)
-    .mutation(async ({ input }) => {
-      const supabase = createServerSupabaseClient();
-
-      if (supabase) {
-        const { data, error } = await supabase.auth.signInWithIdToken({
-          provider: 'google',
-          token: input.idToken,
-        });
-        if (error || !data.user) {
-          throw new TRPCError({
-            code: 'UNAUTHORIZED',
-            message: error?.message ?? 'Google sign-in failed',
-          });
-        }
-        const email = data.user.email;
-        if (!email) {
-          throw new TRPCError({
-            code: 'BAD_REQUEST',
-            message: 'Google account must have a verified email',
-          });
-        }
-        let dbUser = await prisma.user.findUnique({ where: { email } });
-        if (!dbUser) {
-          const googleRole = input.role ?? 'tenant';
-          dbUser = await prisma.user.create({
-            data: {
-              email,
-              firstName: data.user.user_metadata?.given_name,
-              lastName: data.user.user_metadata?.family_name,
-              avatarUrl: data.user.user_metadata?.avatar_url,
-              roles: [googleRole],
-              activeRole: googleRole,
-            },
-          });
-        }
-        return { success: true, userId: dbUser.id, roles: dbUser.roles, activeRole: dbUser.activeRole };
-      }
-
-      throw new TRPCError({
-        code: 'INTERNAL_SERVER_ERROR',
-        message: 'Google sign-in is not configured. Please use email/OTP instead.',
-      });
     }),
 
   switchRole: authedProcedure
@@ -379,6 +335,7 @@ export const authRouter = router({
       if (input.firstName !== undefined) userUpdate.firstName = input.firstName;
       if (input.lastName !== undefined) userUpdate.lastName = input.lastName;
       if (input.avatarUrl !== undefined) userUpdate.avatarUrl = input.avatarUrl;
+      if (input.phone !== undefined) userUpdate.phone = input.phone;
 
       if (Object.keys(userUpdate).length > 0) {
         await prisma.user.update({ where: { id: ctx.userId! }, data: userUpdate });

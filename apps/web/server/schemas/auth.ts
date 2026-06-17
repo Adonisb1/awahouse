@@ -1,16 +1,25 @@
 import { z } from 'zod';
+import { BLOCKED_EMAIL_DOMAINS, isEmailDomainBlocked } from '@/lib/email/blocked-domains';
+
+const emailSchema = z.string().email('Please enter a valid email address').refine(
+  (email) => !isEmailDomainBlocked(email),
+  'Please use a valid email address (disposable emails not allowed)',
+);
+
+const phoneSchema = z.string().regex(/^\+[1-9]\d{6,14}$/, 'Phone must be in E.164 format (e.g. +2348012345678)').optional();
 
 export const sendOtpInput = z.object({
-  email: z.string().email('Please enter a valid email address'),
+  email: emailSchema,
   role: z.enum(['tenant', 'landlord', 'agent']),
 });
 
 export const verifyOtpInput = z.object({
-  email: z.string().email('Please enter a valid email address'),
+  email: emailSchema,
   code: z.string().length(6, 'OTP must be 6 digits'),
   role: z.enum(['tenant', 'landlord', 'agent']).optional(),
   firstName: z.string().max(100).optional(),
   lastName: z.string().max(100).optional(),
+  phone: phoneSchema,
   password: z.string()
     .min(8, 'Password must be at least 8 characters')
     .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
@@ -19,7 +28,7 @@ export const verifyOtpInput = z.object({
 });
 
 export const signInInput = z.object({
-  email: z.string().email('Please enter a valid email address'),
+  email: emailSchema,
   password: z.string().min(1, 'Password is required'),
 });
 
@@ -40,6 +49,7 @@ export const updateProfileInput = z.object({
   firstName: z.string().max(100).optional(),
   lastName: z.string().max(100).optional(),
   avatarUrl: z.string().url().optional(),
+  phone: phoneSchema,
   firmName: z.string().max(200).optional(),
   bankName: z.string().max(100).optional(),
   bankCode: z.string().max(10).optional(),

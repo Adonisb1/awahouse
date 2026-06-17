@@ -52,6 +52,7 @@ export default function ProfilePage() {
   
   const switchRoleMutation = trpc.auth.switchRole.useMutation();
   const signOutMutation = trpc.auth.signOut.useMutation();
+  const updateProfileMutation = trpc.auth.updateProfile.useMutation();
 
   const handleSignOut = async () => {
     try {
@@ -470,7 +471,13 @@ export default function ProfilePage() {
                 <Input label="Last Name" value={profile?.lastName ?? ''} onChangeValue={() => {}} />
               </div>
               <Input label="Email Address" value={profile?.email ?? ''} onChangeValue={() => {}} disabled />
-              <Input label="Mobile Number" value={profile?.phone ?? ''} onChangeValue={() => {}} />
+              <Input
+                label="Mobile Number"
+                value={profile?.phone ?? ''}
+                onChangeValue={(val) => {
+                  updateProfileMutation.mutate({ phone: val || undefined });
+                }}
+              />
 
               <div className="pt-4">
                  <Button fullWidth size="lg">Save Account Details</Button>
