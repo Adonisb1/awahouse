@@ -72,7 +72,13 @@ function AuthPage() {
       });
       setStage('otp');
     } catch (err: any) {
-      setError(err?.message ?? 'Something went wrong');
+      // If the email is already registered, switch to login tab automatically
+      if (err?.data?.code === 'CONFLICT' || err?.message?.includes('already exists')) {
+        setActiveTab('login');
+        setError('This email is already registered. Please log in instead.');
+      } else {
+        setError(err?.message ?? 'Something went wrong');
+      }
     }
   };
 
@@ -113,6 +119,18 @@ function AuthPage() {
     try {
       setLoginLoading(true);
       setError('');
+
+      if (!form.email || !form.email.includes('@')) {
+        setError('Please enter a valid email address');
+        setLoginLoading(false);
+        return;
+      }
+      if (!form.password) {
+        setError('Please enter your password');
+        setLoginLoading(false);
+        return;
+      }
+
       const result = await signInMutation.mutateAsync({
         email: form.email,
         password: form.password,
@@ -133,7 +151,15 @@ function AuthPage() {
         }
       }
     } catch (err: any) {
-      setError(err?.message ?? 'Sign in failed');
+      const msg: string = err?.message ?? 'Sign in failed';
+      // Supabase returns this for invalid password / unconfirmed email
+      if (msg.toLowerCase().includes('invalid login credentials') || msg.toLowerCase().includes('invalid email or password')) {
+        setError('Incorrect email or password. If you signed up with Google, use the "Continue with Google" button below.');
+      } else if (msg.toLowerCase().includes('email not confirmed')) {
+        setError('Please check your email and click the confirmation link before logging in.');
+      } else {
+        setError(msg);
+      }
     } finally {
       setLoginLoading(false);
     }

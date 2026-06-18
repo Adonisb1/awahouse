@@ -449,8 +449,11 @@ export const authRouter = router({
       return { success: true };
     }),
 
-  refreshSession: authedProcedure
+  refreshSession: publicProcedure
     .query(async ({ ctx }) => {
+      if (!ctx.userId) {
+        return { userId: null, roles: [], activeRole: null, authenticated: false };
+      }
       return { userId: ctx.userId, roles: ctx.roles, activeRole: ctx.activeRole, authenticated: true };
     }),
 });
