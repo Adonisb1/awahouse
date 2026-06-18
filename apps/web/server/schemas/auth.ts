@@ -33,7 +33,8 @@ export const signInInput = z.object({
 });
 
 export const signInWithGoogleInput = z.object({
-  idToken: z.string().min(1, 'ID token is required'),
+  idToken: z.string().optional(),
+  accessToken: z.string().optional(),
   role: z.enum(['tenant', 'landlord', 'agent']).optional(),
 });
 
