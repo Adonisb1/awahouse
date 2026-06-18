@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { router, publicProcedure, authedProcedure } from '../trpc';
 import {
   sendOtpInput, verifyOtpInput, signInInput,
-  switchRoleInput, updateProfileInput,
+  switchRoleInput, updateProfileInput, signInWithGoogleInput,
 } from '../schemas/auth';
 import { createServerSupabaseClient } from '@/lib/auth/supabase';
 import { createOtp, verifyOtp, canRequestOtp } from '@/lib/auth/otp';
@@ -363,6 +363,81 @@ export const authRouter = router({
       }
 
       return { success: true };
+    }),
+
+  signInWithGoogle: publicProcedure
+    .input(signInWithGoogleInput)
+    .mutation(async ({ input }) => {
+      const token = input.accessToken || input.idToken;
+      if (!token) {
+        throw new TRPCError({
+          code: 'BAD_REQUEST',
+          message: 'Access token or ID token is required',
+        });
+      }
+
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+      const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+      if (!supabaseUrl || !supabaseAnonKey) {
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Supabase is not configured on the server',
+        });
+      }
+
+      const { createClient } = await import('@supabase/supabase-js');
+      const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+        auth: {
+          persistSession: false,
+        },
+      });
+
+      const { data: { user }, error } = await supabase.auth.getUser(token);
+
+      if (error || !user) {
+        throw new TRPCError({
+          code: 'UNAUTHORIZED',
+          message: error?.message ?? 'Invalid token',
+        });
+      }
+
+      if (!user.email) {
+        throw new TRPCError({
+          code: 'BAD_REQUEST',
+          message: 'No email associated with this token',
+        });
+      }
+
+      const role = input.role ?? 'tenant';
+      let dbUser = await prisma.user.findUnique({ where: { email: user.email } });
+
+      if (!dbUser) {
+        dbUser = await prisma.user.create({
+          data: {
+            id: user.id,
+            email: user.email,
+            firstName: user.user_metadata?.given_name as string | undefined,
+            lastName: user.user_metadata?.family_name as string | undefined,
+            avatarUrl: user.user_metadata?.avatar_url as string | undefined,
+            roles: [role],
+            activeRole: role,
+          },
+        });
+      } else {
+        if (!dbUser.avatarUrl && user.user_metadata?.avatar_url) {
+          dbUser = await prisma.user.update({
+            where: { id: dbUser.id },
+            data: { avatarUrl: user.user_metadata.avatar_url },
+          });
+        }
+      }
+
+      return {
+        success: true,
+        userId: dbUser.id,
+        roles: dbUser.roles,
+        activeRole: dbUser.activeRole,
+      };
     }),
 
   signOut: authedProcedure

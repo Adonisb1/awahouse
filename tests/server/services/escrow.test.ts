@@ -15,7 +15,7 @@ async function createTestUser(id: string, role: string) {
     create: {
       id,
       email: `${role}@test.awahouse.com`,
-      phone: '+2348000000001',
+      phone: `+234800000000${id.slice(-1)}`,
       firstName: 'Test',
       lastName: role.charAt(0).toUpperCase() + role.slice(1),
       roles: [role],

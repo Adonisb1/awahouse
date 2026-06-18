@@ -32,4 +32,24 @@ describe('Auth - smoke', () => {
     expect(verifyOtp(email, code)).toBe(true);
     expect(verifyOtp(email, code)).toBe(false);
   });
+
+  it('signInWithGoogleInput schema should validate correct inputs', async () => {
+    const { signInWithGoogleInput } = await import('@/server/schemas/auth');
+    const result1 = signInWithGoogleInput.safeParse({
+      accessToken: 'valid-access-token',
+      role: 'tenant',
+    });
+    expect(result1.success).toBe(true);
+
+    const result2 = signInWithGoogleInput.safeParse({
+      idToken: 'valid-id-token',
+      role: 'admin',
+    });
+    expect(result2.success).toBe(true);
+
+    const result3 = signInWithGoogleInput.safeParse({
+      role: 'agent',
+    });
+    expect(result3.success).toBe(true); // accessToken & idToken are optional individually
+  });
 });

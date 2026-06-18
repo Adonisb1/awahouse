@@ -15,13 +15,20 @@ export default function SplashPage() {
       setShowButton(true);
     }, 900);
 
-    const redirectTimer = setTimeout(() => {
-      router.push('/role');
-    }, 3500);
+    const hasAccessToken = typeof window !== 'undefined' && window.location.hash.includes('access_token');
+    let redirectTimer: NodeJS.Timeout | undefined;
+
+    if (!hasAccessToken) {
+      redirectTimer = setTimeout(() => {
+        router.push('/role');
+      }, 3500);
+    }
 
     return () => {
       clearTimeout(timer);
-      clearTimeout(redirectTimer);
+      if (redirectTimer) {
+        clearTimeout(redirectTimer);
+      }
     };
   }, [router]);
 

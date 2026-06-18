@@ -35,7 +35,7 @@ export const signInInput = z.object({
 export const signInWithGoogleInput = z.object({
   idToken: z.string().optional(),
   accessToken: z.string().optional(),
-  role: z.enum(['tenant', 'landlord', 'agent']).optional(),
+  role: z.enum(['tenant', 'landlord', 'agent', 'admin']).optional(),
 });
 
 export const switchRoleInput = z.object({
