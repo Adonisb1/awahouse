@@ -6,6 +6,11 @@ const OTP_LENGTH = 6;
 const MAX_ATTEMPTS = 3;
 const RATE_LIMIT_MS = 60 * 1000; // min 60s between new OTP requests
 
+/** Always normalise email before any DB operation to prevent case-mismatch. */
+function normaliseEmail(email: string): string {
+  return email.trim().toLowerCase();
+}
+
 function generateCode(): string {
   return crypto.randomInt(0, 1_000_000).toString().padStart(OTP_LENGTH, '0');
 }
@@ -16,13 +21,16 @@ function hashCode(code: string): string {
 
 /** Creates a new OTP for the given email, deleting any previous one. Returns the plaintext code. */
 export async function createOtp(email: string): Promise<string> {
+  const normEmail = normaliseEmail(email);
   const code = generateCode();
   const codeHash = hashCode(code);
   const expiresAt = new Date(Date.now() + OTP_TTL_MS);
 
+  console.log(`[OTP] createOtp called for ${normEmail} — DB-backed v2`);
+
   // Delete any previous OTP for this email then create fresh
-  await prisma.otpCode.deleteMany({ where: { email } });
-  await prisma.otpCode.create({ data: { email, codeHash, expiresAt } });
+  await prisma.otpCode.deleteMany({ where: { email: normEmail } });
+  await prisma.otpCode.create({ data: { email: normEmail, codeHash, expiresAt } });
 
   return code;
 }
@@ -33,20 +41,26 @@ export async function createOtp(email: string): Promise<string> {
  * Returns false on wrong code, expiry, or too many attempts.
  */
 export async function verifyOtp(email: string, code: string): Promise<boolean> {
+  const normEmail = normaliseEmail(email);
+
   const record = await prisma.otpCode.findFirst({
-    where: { email },
+    where: { email: normEmail },
     orderBy: { createdAt: 'desc' },
   });
+
+  console.log(`[OTP] verifyOtp called for ${normEmail} — record found: ${!!record}`);
 
   if (!record) return false;
 
   if (record.expiresAt < new Date()) {
-    await prisma.otpCode.deleteMany({ where: { email } });
+    console.log(`[OTP] expired for ${normEmail}`);
+    await prisma.otpCode.deleteMany({ where: { email: normEmail } });
     return false;
   }
 
   if (record.attempts >= MAX_ATTEMPTS) {
-    await prisma.otpCode.deleteMany({ where: { email } });
+    console.log(`[OTP] max attempts reached for ${normEmail}`);
+    await prisma.otpCode.deleteMany({ where: { email: normEmail } });
     return false;
   }
 
@@ -56,10 +70,13 @@ export async function verifyOtp(email: string, code: string): Promise<boolean> {
     data: { attempts: { increment: 1 } },
   });
 
-  if (record.codeHash !== hashCode(code)) return false;
+  if (record.codeHash !== hashCode(code)) {
+    console.log(`[OTP] wrong code for ${normEmail}`);
+    return false;
+  }
 
   // Code is correct — clean up
-  await prisma.otpCode.deleteMany({ where: { email } });
+  await prisma.otpCode.deleteMany({ where: { email: normEmail } });
   return true;
 }
 
@@ -68,8 +85,10 @@ export async function verifyOtp(email: string, code: string): Promise<boolean> {
  * Enforces a 60-second cooldown between requests.
  */
 export async function canRequestOtp(email: string): Promise<boolean> {
+  const normEmail = normaliseEmail(email);
+
   const record = await prisma.otpCode.findFirst({
-    where: { email },
+    where: { email: normEmail },
     orderBy: { createdAt: 'desc' },
   });
 
@@ -77,7 +96,7 @@ export async function canRequestOtp(email: string): Promise<boolean> {
 
   // If the previous OTP is expired, allow a new one
   if (record.expiresAt < new Date()) {
-    await prisma.otpCode.deleteMany({ where: { email } });
+    await prisma.otpCode.deleteMany({ where: { email: normEmail } });
     return true;
   }
 
