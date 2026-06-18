@@ -45,10 +45,81 @@ export default function ProfilePage() {
   const [error, setError] = React.useState('');
   const { userId, roles, activeRole, setActiveRole, clearAuth } = useAuthStore();
 
+  const [twoFactorEnabled, setTwoFactorEnabled] = React.useState(true);
+  const [shareScore, setShareScore] = React.useState(true);
+  const [showBadge, setShowBadge] = React.useState(true);
+  const [allowMarketing, setAllowMarketing] = React.useState(false);
+
+  const [toastMessage, setToastMessage] = React.useState('');
+  const [toastType, setToastType] = React.useState<'success' | 'error'>('success');
+
+  const [showPasswordModal, setShowPasswordModal] = React.useState(false);
+  const [newPassword, setNewPassword] = React.useState('');
+  const [confirmPassword, setConfirmPassword] = React.useState('');
+  const [isUpdatingPassword, setIsUpdatingPassword] = React.useState(false);
+  const [modalError, setModalError] = React.useState('');
+
+  const [firstName, setFirstName] = React.useState('');
+  const [lastName, setLastName] = React.useState('');
+  const [phone, setPhone] = React.useState('');
+
+  const showToast = (message: string, type: 'success' | 'error' = 'success') => {
+    setToastMessage(message);
+    setToastType(type);
+    setTimeout(() => setToastMessage(''), 3000);
+  };
+
   const { data: profile } = trpc.auth.getProfile.useQuery();
   const { data: verifData } = trpc.verification.checkStatus.useQuery();
   const { data: scoreData } = trpc.rentScore.get.useQuery({});
   const { data: notificationsData } = trpc.notifications.list.useQuery({ limit: 20 });
+
+  React.useEffect(() => {
+    if (profile) {
+      setFirstName(profile.firstName ?? '');
+      setLastName(profile.lastName ?? '');
+      setPhone(profile.phone ?? '');
+    }
+  }, [profile]);
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newPassword || !confirmPassword) {
+      setModalError('All password fields are required');
+      return;
+    }
+    if (newPassword.length < 8) {
+      setModalError('Password must be at least 8 characters long');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setModalError('New passwords do not match');
+      return;
+    }
+
+    setIsUpdatingPassword(true);
+    setModalError('');
+
+    try {
+      const { createAnonSupabaseClient } = await import('@/lib/auth/supabase');
+      const supabase = createAnonSupabaseClient();
+      if (!supabase) {
+        throw new Error('Authentication client unavailable');
+      }
+
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) throw error;
+
+      showToast('Password updated successfully');
+      setShowPasswordModal(false);
+      setNewPassword('');
+      setConfirmPassword('');
+    } catch (err: any) {
+      setModalError(err?.message ?? 'Failed to update password');
+    } finally {
+      setIsUpdatingPassword(false);
+    }
+  };
   
   const switchRoleMutation = trpc.auth.switchRole.useMutation();
   const signOutMutation = trpc.auth.signOut.useMutation();
@@ -391,7 +462,7 @@ export default function ProfilePage() {
                        <p className="text-xs text-muted">Last changed 3 months ago</p>
                      </div>
                    </div>
-                   <Button variant="secondary" size="sm">Update</Button>
+                   <Button variant="secondary" size="sm" onClick={() => setShowPasswordModal(true)}>Update</Button>
                  </div>
                  
                  <div className="pt-8 border-t border-outline-variant/30 flex items-center justify-between">
@@ -401,35 +472,91 @@ export default function ProfilePage() {
                      </div>
                      <div>
                        <h3 className="font-bold text-charcoal text-lg">Two-Factor Auth</h3>
-                       <p className="text-xs text-muted">Currently enabled via SMS</p>
+                       <p className="text-xs text-muted">
+                         {twoFactorEnabled ? 'Currently enabled via SMS' : 'Disabled'}
+                       </p>
                      </div>
                    </div>
-                   <div className="w-12 h-6 bg-terra rounded-full p-1 flex justify-end">
+                   <button 
+                     onClick={() => {
+                       const newVal = !twoFactorEnabled;
+                       setTwoFactorEnabled(newVal);
+                       showToast(newVal ? 'Two-Factor Authentication enabled' : 'Two-Factor Authentication disabled');
+                     }}
+                     className={cn(
+                       "w-12 h-6 rounded-full p-1 flex transition-colors shrink-0 outline-none",
+                       twoFactorEnabled ? "bg-terra justify-end" : "bg-gray-200 justify-start"
+                     )}
+                   >
                       <div className="w-4 h-4 bg-white rounded-full shadow-sm" />
-                   </div>
+                   </button>
                  </div>
 
                  <div className="pt-8 border-t border-outline-variant/30">
                     <h3 className="font-bold text-charcoal mb-4">Sharing Preferences</h3>
-                    <div className="space-y-4">
-                       {[
-                         { label: 'Share RentScore with prospective landlords', desc: 'Allows verified landlords to see your score when you apply.', enabled: true },
-                         { label: 'Show identity badge on profile', desc: 'Display "NIN Verified" to build trust with agents.', enabled: true },
-                         { label: 'Allow marketing communications', desc: 'Receive property tips and platform updates.', enabled: false },
-                       ].map((pref, i) => (
-                         <div key={i} className="flex justify-between items-start gap-4">
-                           <div className="flex-1">
-                             <p className="text-sm font-bold text-charcoal">{pref.label}</p>
-                             <p className="text-[11px] text-muted">{pref.desc}</p>
-                           </div>
-                           <div className={cn(
-                             "w-10 h-5 rounded-full p-0.5 flex transition-colors shrink-0",
-                             pref.enabled ? "bg-terra justify-end" : "bg-gray-200 justify-start"
-                           )}>
-                              <div className="w-4 h-4 bg-white rounded-full shadow-sm" />
-                           </div>
-                         </div>
-                       ))}
+                    <div className="space-y-6">
+                      {/* Preference 1 */}
+                      <div className="flex justify-between items-start gap-4">
+                        <div className="flex-1">
+                          <p className="text-sm font-bold text-charcoal">Share RentScore with prospective landlords</p>
+                          <p className="text-[11px] text-muted">Allows verified landlords to see your score when you apply.</p>
+                        </div>
+                        <button 
+                          onClick={() => {
+                            const newVal = !shareScore;
+                            setShareScore(newVal);
+                            showToast(newVal ? 'Sharing RentScore enabled' : 'Sharing RentScore disabled');
+                          }}
+                          className={cn(
+                            "w-10 h-5 rounded-full p-0.5 flex transition-colors shrink-0 outline-none",
+                            shareScore ? "bg-terra justify-end" : "bg-gray-200 justify-start"
+                          )}
+                        >
+                           <div className="w-4 h-4 bg-white rounded-full shadow-sm" />
+                        </button>
+                      </div>
+
+                      {/* Preference 2 */}
+                      <div className="flex justify-between items-start gap-4 pt-4 border-t border-outline-variant/10">
+                        <div className="flex-1">
+                          <p className="text-sm font-bold text-charcoal">Show identity badge on profile</p>
+                          <p className="text-[11px] text-muted">Display "NIN Verified" to build trust with agents.</p>
+                        </div>
+                        <button 
+                          onClick={() => {
+                            const newVal = !showBadge;
+                            setShowBadge(newVal);
+                            showToast(newVal ? 'Identity badge visible on profile' : 'Identity badge hidden');
+                          }}
+                          className={cn(
+                            "w-10 h-5 rounded-full p-0.5 flex transition-colors shrink-0 outline-none",
+                            showBadge ? "bg-terra justify-end" : "bg-gray-200 justify-start"
+                          )}
+                        >
+                           <div className="w-4 h-4 bg-white rounded-full shadow-sm" />
+                        </button>
+                      </div>
+
+                      {/* Preference 3 */}
+                      <div className="flex justify-between items-start gap-4 pt-4 border-t border-outline-variant/10">
+                        <div className="flex-1">
+                          <p className="text-sm font-bold text-charcoal">Allow marketing communications</p>
+                          <p className="text-[11px] text-muted">Receive property tips and platform updates.</p>
+                        </div>
+                        <button 
+                          onClick={() => {
+                            const newVal = !allowMarketing;
+                            setAllowMarketing(newVal);
+                            showToast(newVal ? 'Opted in to marketing communications' : 'Opted out of marketing communications');
+                          }}
+                          className={cn(
+                            "w-10 h-5 rounded-full p-0.5 flex transition-colors shrink-0 outline-none",
+                            allowMarketing ? "bg-terra justify-end" : "bg-gray-200 justify-start"
+                          )}
+                        >
+                           <div className="w-4 h-4 bg-white rounded-full shadow-sm" />
+                        </button>
+                      </div>
                     </div>
                  </div>
                </div>
@@ -467,25 +594,112 @@ export default function ProfilePage() {
               </div>
 
               <div className="grid grid-cols-2 gap-4">
-                <Input label="First Name" value={profile?.firstName ?? ''} onChangeValue={() => {}} />
-                <Input label="Last Name" value={profile?.lastName ?? ''} onChangeValue={() => {}} />
+                <Input label="First Name" value={firstName} onChangeValue={setFirstName} />
+                <Input label="Last Name" value={lastName} onChangeValue={setLastName} />
               </div>
-              <Input label="Email Address" value={profile?.email ?? ''} onChangeValue={() => {}} disabled />
+              <Input label="Email Address" value={profile?.email ?? ''} disabled />
               <Input
                 label="Mobile Number"
-                value={profile?.phone ?? ''}
-                onChangeValue={(val) => {
-                  updateProfileMutation.mutate({ phone: val || undefined });
-                }}
+                value={phone}
+                onChangeValue={setPhone}
               />
 
               <div className="pt-4">
-                 <Button fullWidth size="lg">Save Account Details</Button>
+                 <Button 
+                   fullWidth 
+                   size="lg" 
+                   loading={updateProfileMutation.isPending}
+                   onClick={async () => {
+                     try {
+                       await updateProfileMutation.mutateAsync({
+                         firstName: firstName || undefined,
+                         lastName: lastName || undefined,
+                         phone: phone || undefined,
+                       });
+                       showToast('Account details saved successfully');
+                     } catch (err: any) {
+                       showToast(err?.message ?? 'Failed to save account details', 'error');
+                     }
+                   }}
+                 >
+                   Save Account Details
+                 </Button>
               </div>
             </section>
           </div>
         )}
       </ProfileSidebarLayout>
+
+      {/* Change Password Modal */}
+      {showPasswordModal && (
+        <div className="fixed inset-0 bg-charcoal-deep/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-md rounded-card border border-outline-variant/30 shadow-xl overflow-hidden animate-in zoom-in-95 duration-150">
+            <header className="px-6 py-4 border-b border-outline-variant/30 flex justify-between items-center bg-sand-warm/20">
+              <h3 className="font-playfair text-xl font-bold text-charcoal">Change Password</h3>
+              <button 
+                onClick={() => setShowPasswordModal(false)}
+                className="text-muted hover:text-charcoal transition-colors text-lg font-bold"
+              >
+                ✕
+              </button>
+            </header>
+            <form onSubmit={handleChangePassword} className="p-6 space-y-4">
+              {modalError && (
+                <div className="bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl px-4 py-3">
+                  {modalError}
+                </div>
+              )}
+              
+              <Input
+                label="New Password"
+                type="password"
+                placeholder="Minimum 8 characters"
+                value={newPassword}
+                onChangeValue={setNewPassword}
+              />
+              
+              <Input
+                label="Confirm New Password"
+                type="password"
+                placeholder="Repeat new password"
+                value={confirmPassword}
+                onChangeValue={setConfirmPassword}
+              />
+              
+              <div className="pt-4 flex gap-3">
+                <Button 
+                  type="button" 
+                  variant="ghost" 
+                  fullWidth 
+                  onClick={() => setShowPasswordModal(false)}
+                  disabled={isUpdatingPassword}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  type="submit" 
+                  variant="primary" 
+                  fullWidth 
+                  loading={isUpdatingPassword}
+                >
+                  Save Changes
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Success/Error Toast */}
+      {toastMessage && (
+        <div className={cn(
+          "fixed bottom-6 right-6 px-6 py-3 rounded-xl shadow-lg border text-sm font-body z-50 flex items-center gap-2 animate-in fade-in slide-in-from-bottom-4",
+          toastType === 'success' ? "bg-success-bg border-success/30 text-success" : "bg-red-50 border-red-200 text-red-700"
+        )}>
+          <Check size={16} />
+          {toastMessage}
+        </div>
+      )}
 
       <div className="md:hidden">
         <BottomNav role={(activeRole?.toUpperCase() ?? 'TENANT') as UserRole} />
