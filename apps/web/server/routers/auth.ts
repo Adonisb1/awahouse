@@ -80,14 +80,14 @@ export const authRouter = router({
         });
       }
 
-      if (!canRequestOtp(input.email)) {
+      if (!await canRequestOtp(input.email)) {
         throw new TRPCError({
           code: 'TOO_MANY_REQUESTS',
-          message: 'Too many OTP requests. Please wait 10 minutes.',
+          message: 'Please wait a moment before requesting another code.',
         });
       }
 
-      const code = createOtp(input.email);
+      const code = await createOtp(input.email);
 
       if (process.env.NODE_ENV === 'development') {
         console.log('═══════════════════════════════════════');
@@ -107,7 +107,7 @@ export const authRouter = router({
   verifyOtp: publicProcedure
     .input(verifyOtpInput)
     .mutation(async ({ input }) => {
-      if (!verifyOtp(input.email, input.code)) {
+      if (!await verifyOtp(input.email, input.code)) {
         throw new TRPCError({
           code: 'UNAUTHORIZED',
           message: 'Invalid or expired OTP',

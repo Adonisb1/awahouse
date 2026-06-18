@@ -1,64 +1,92 @@
 import crypto from 'crypto';
+import { prisma } from '@awahouse/db';
 
+const OTP_TTL_MS = 5 * 60 * 1000; // 5 minutes
 const OTP_LENGTH = 6;
-const OTP_TTL_MS = 5 * 60 * 1000;
 const MAX_ATTEMPTS = 3;
-
-type OtpRecord = {
-  code: string;
-  attempts: number;
-  expiresAt: number;
-};
-
-const inMemoryStore = new Map<string, OtpRecord>();
+const RATE_LIMIT_MS = 60 * 1000; // min 60s between new OTP requests
 
 function generateCode(): string {
-  const digits = crypto.randomInt(0, 1000000).toString().padStart(OTP_LENGTH, '0');
-  return digits;
+  return crypto.randomInt(0, 1_000_000).toString().padStart(OTP_LENGTH, '0');
 }
 
-export function createOtp(identifier: string): string {
+function hashCode(code: string): string {
+  return crypto.createHash('sha256').update(code).digest('hex');
+}
+
+/** Creates a new OTP for the given email, deleting any previous one. Returns the plaintext code. */
+export async function createOtp(email: string): Promise<string> {
   const code = generateCode();
-  inMemoryStore.set(identifier, {
-    code,
-    attempts: 0,
-    expiresAt: Date.now() + OTP_TTL_MS,
-  });
+  const codeHash = hashCode(code);
+  const expiresAt = new Date(Date.now() + OTP_TTL_MS);
+
+  // Delete any previous OTP for this email then create fresh
+  await prisma.otpCode.deleteMany({ where: { email } });
+  await prisma.otpCode.create({ data: { email, codeHash, expiresAt } });
+
   return code;
 }
 
-export function verifyOtp(identifier: string, code: string): boolean {
-  const record = inMemoryStore.get(identifier);
+/**
+ * Verifies the code for the given email.
+ * Returns true and deletes the record on success.
+ * Returns false on wrong code, expiry, or too many attempts.
+ */
+export async function verifyOtp(email: string, code: string): Promise<boolean> {
+  const record = await prisma.otpCode.findFirst({
+    where: { email },
+    orderBy: { createdAt: 'desc' },
+  });
+
   if (!record) return false;
-  if (Date.now() > record.expiresAt) {
-    inMemoryStore.delete(identifier);
+
+  if (record.expiresAt < new Date()) {
+    await prisma.otpCode.deleteMany({ where: { email } });
     return false;
   }
-  record.attempts += 1;
-  if (record.attempts > MAX_ATTEMPTS) {
-    inMemoryStore.delete(identifier);
+
+  if (record.attempts >= MAX_ATTEMPTS) {
+    await prisma.otpCode.deleteMany({ where: { email } });
     return false;
   }
-  if (record.code !== code) return false;
-  inMemoryStore.delete(identifier);
+
+  // Increment attempts before checking — prevents timing attacks
+  await prisma.otpCode.update({
+    where: { id: record.id },
+    data: { attempts: { increment: 1 } },
+  });
+
+  if (record.codeHash !== hashCode(code)) return false;
+
+  // Code is correct — clean up
+  await prisma.otpCode.deleteMany({ where: { email } });
   return true;
 }
 
-export function canRequestOtp(identifier: string): boolean {
-  const record = inMemoryStore.get(identifier);
+/**
+ * Returns true if the user is allowed to request a new OTP.
+ * Enforces a 60-second cooldown between requests.
+ */
+export async function canRequestOtp(email: string): Promise<boolean> {
+  const record = await prisma.otpCode.findFirst({
+    where: { email },
+    orderBy: { createdAt: 'desc' },
+  });
+
   if (!record) return true;
-  if (Date.now() > record.expiresAt) {
-    inMemoryStore.delete(identifier);
+
+  // If the previous OTP is expired, allow a new one
+  if (record.expiresAt < new Date()) {
+    await prisma.otpCode.deleteMany({ where: { email } });
     return true;
   }
-  return record.attempts < MAX_ATTEMPTS;
+
+  // Enforce cooldown: must wait at least 60s before requesting again
+  const elapsed = Date.now() - record.createdAt.getTime();
+  return elapsed >= RATE_LIMIT_MS;
 }
 
-export function clearExpiredOtps(): void {
-  const now = Date.now();
-  for (const [key, record] of inMemoryStore) {
-    if (now > record.expiresAt) {
-      inMemoryStore.delete(key);
-    }
-  }
+/** Deletes all expired OTP records — can be called as a periodic cleanup job. */
+export async function clearExpiredOtps(): Promise<void> {
+  await prisma.otpCode.deleteMany({ where: { expiresAt: { lt: new Date() } } });
 }
