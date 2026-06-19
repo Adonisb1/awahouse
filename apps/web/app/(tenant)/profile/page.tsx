@@ -107,6 +107,18 @@ export default function ProfilePage() {
         throw new Error('Authentication client unavailable');
       }
 
+      const sessionToken = useAuthStore.getState().sessionToken;
+      if (!sessionToken) {
+        throw new Error('You must be logged in to change your password');
+      }
+
+      // First set the session so the client is authenticated
+      const { error: sessionError } = await supabase.auth.setSession({
+        access_token: sessionToken,
+        refresh_token: '', // We only need the access token for this request
+      });
+      if (sessionError) throw new Error('Session expired. Please log in again.');
+
       const { error } = await supabase.auth.updateUser({ password: newPassword });
       if (error) throw error;
 
