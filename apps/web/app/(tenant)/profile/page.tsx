@@ -323,40 +323,68 @@ export default function ProfilePage() {
                 )}
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className={cn(
-                  "p-4 rounded-xl border flex items-start gap-4 transition-all",
-                  isNinVerified ? "bg-success-bg border-success/10" : "bg-gray-50 border-outline-variant/10"
-                )}>
-                  <div className={cn(
-                    "w-8 h-8 rounded-full flex items-center justify-center shadow-sm",
-                    isNinVerified ? "bg-white text-success" : "bg-white text-muted"
-                  )}>
-                    <ShieldCheck size={16} />
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <button 
+                  onClick={() => router.push('/verify-nin')}
+                  className={cn(
+                    "p-5 rounded-xl border flex flex-col gap-3 transition-all text-left group",
+                    isNinVerified 
+                      ? "bg-success-bg/50 border-success/20 hover:border-success/40" 
+                      : "bg-white border-outline-variant/30 hover:border-terra/40 hover:shadow-md hover:-translate-y-0.5"
+                  )}
+                >
+                  <div className="flex items-center justify-between w-full">
+                    <div className={cn(
+                      "w-10 h-10 rounded-full flex items-center justify-center shadow-sm",
+                      isNinVerified ? "bg-success text-white" : "bg-sand text-terra"
+                    )}>
+                      <ShieldCheck size={18} />
+                    </div>
+                    {isNinVerified ? (
+                      <Check size={18} className="text-success" />
+                    ) : (
+                      <ChevronRight size={18} className="text-muted group-hover:text-terra transition-colors" />
+                    )}
                   </div>
                   <div>
-                    <p className={cn("font-bold text-sm", isNinVerified ? "text-success" : "text-charcoal")}>Identity (NIN)</p>
-                    <p className="text-[11px] text-muted mt-0.5">{isNinVerified ? 'Successfully verified' : 'Pending verification'}</p>
+                    <p className={cn("font-bold text-base", isNinVerified ? "text-success" : "text-charcoal")}>Identity (NIN)</p>
+                    <p className="text-xs text-muted mt-1 leading-relaxed">
+                      {isNinVerified ? 'Your identity has been securely verified.' : 'Verify your NIN to unlock all features.'}
+                    </p>
                   </div>
-                </div>
-                <div className="p-4 rounded-xl bg-gray-50 border border-outline-variant/10 flex items-start gap-4">
-                  <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-muted shadow-sm">
-                    <Smartphone size={16} />
+                </button>
+                
+                <button 
+                  onClick={() => router.push('/profile')} // Placeholder for phone verification or settings
+                  className="p-5 rounded-xl bg-white border border-outline-variant/30 hover:border-terra/40 hover:shadow-md hover:-translate-y-0.5 transition-all text-left flex flex-col gap-3 group"
+                >
+                  <div className="flex items-center justify-between w-full">
+                    <div className="w-10 h-10 rounded-full bg-sand flex items-center justify-center text-terra shadow-sm">
+                      <Smartphone size={18} />
+                    </div>
+                    <Check size={18} className="text-success" />
                   </div>
                   <div>
-                    <p className="font-bold text-sm text-charcoal">Phone Number</p>
-                    <p className="text-[11px] text-muted mt-0.5">Primary device linked</p>
+                    <p className="font-bold text-base text-charcoal">Phone Number</p>
+                    <p className="text-xs text-muted mt-1 leading-relaxed">Primary device linked and verified.</p>
                   </div>
-                </div>
-                <div className="p-4 rounded-xl bg-gray-50 border border-outline-variant/10 flex items-start gap-4">
-                  <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-muted shadow-sm">
-                    <Building size={16} />
+                </button>
+
+                <button 
+                  onClick={() => router.push('/profile')} // Placeholder for address verification
+                  className="p-5 rounded-xl bg-white border border-outline-variant/30 hover:border-terra/40 hover:shadow-md hover:-translate-y-0.5 transition-all text-left flex flex-col gap-3 group"
+                >
+                  <div className="flex items-center justify-between w-full">
+                    <div className="w-10 h-10 rounded-full bg-sand flex items-center justify-center text-muted shadow-sm group-hover:text-terra transition-colors">
+                      <Building size={18} />
+                    </div>
+                    <ChevronRight size={18} className="text-muted group-hover:text-terra transition-colors" />
                   </div>
                   <div>
-                    <p className="font-bold text-sm text-charcoal">Address History</p>
-                    <p className="text-[11px] text-muted mt-0.5">Verification optional</p>
+                    <p className="font-bold text-base text-charcoal">Address History</p>
+                    <p className="text-xs text-muted mt-1 leading-relaxed">Verification optional. Add your previous addresses.</p>
                   </div>
-                </div>
+                </button>
               </div>
             </section>
           </div>
