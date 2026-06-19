@@ -38,6 +38,10 @@ export default function ExplorePage() {
   const properties = searchResult?.properties ?? [];
   const agents = agentsData ?? [];
 
+  const { data: verifData } = trpc.verification.checkStatus.useQuery();
+  const verifications = verifData?.verifications ?? [];
+  const isNinVerified = verifications.some(v => v.type === 'nin' && v.status === 'approved');
+
   return (
     <div className="flex flex-col min-h-screen bg-sand pb-[80px]">
       <TopNav
@@ -66,7 +70,7 @@ export default function ExplorePage() {
                 Lagos with <span className="text-terra italic">Verified Trust</span>
               </h2>
             </div>
-            <VerifiedBadge type="nin_verified" size="sm" className="mt-1" />
+            {isNinVerified && <VerifiedBadge type="nin_verified" size="sm" className="mt-1" />}
           </div>
         </section>
 
