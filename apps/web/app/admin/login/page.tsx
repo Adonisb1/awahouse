@@ -41,13 +41,24 @@ function AdminLoginForm() {
       // Check if user has admin role
       if (!result.roles.includes('admin')) {
         setError('Unauthorized: Admin access required');
-        // We log them out essentially, or just don't proceed
         return;
       }
 
-      // Automatically switch to admin role
+      // 1. Set the initial auth state so the tRPC client can construct headers
+      setAuth({
+        userId: result.userId,
+        roles: result.roles as Role[],
+        activeRole: result.activeRole as Role,
+        sessionToken: result.sessionToken,
+      });
+
+      // Give zustand persist a tiny moment to write to localStorage
+      await new Promise(r => setTimeout(r, 10));
+
+      // 2. Switch the role in the database
       await switchRoleMutation.mutateAsync({ role: 'admin' });
 
+      // 3. Update the local active role
       setAuth({
         userId: result.userId,
         roles: result.roles as Role[],
