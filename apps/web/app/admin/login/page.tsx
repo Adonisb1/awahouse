@@ -62,20 +62,22 @@ function AdminLoginForm() {
   }
 
   return (
-    <main className="flex min-h-screen flex-col bg-charcoal-deep">
-      <TopNav
-        variant="brand"
-      />
+    <main className="flex min-h-screen flex-col bg-charcoal-dark relative">
+      <div className="absolute top-6 left-6 md:top-8 md:left-8">
+         <span className="font-playfair text-2xl italic font-black text-white tracking-wide">
+            Awahouse
+         </span>
+      </div>
 
       <div className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-6">
-        <div className="flex flex-col items-center text-center mb-8">
-          <div className="w-16 h-16 bg-white/10 rounded-full flex items-center justify-center mb-4">
-            <ShieldCheck size={32} className="text-white" />
+        <div className="flex flex-col items-center text-center mb-8 mt-12">
+          <div className="w-16 h-16 bg-white/10 rounded-full flex items-center justify-center mb-4 border border-white/20 shadow-[0_0_15px_rgba(255,255,255,0.05)]">
+            <ShieldCheck size={32} className="text-white drop-shadow-md" />
           </div>
-          <h1 className="font-playfair text-3xl font-bold text-white">
+          <h1 className="font-playfair text-4xl font-black text-white tracking-tight drop-shadow-sm">
             Admin Portal
           </h1>
-          <p className="mt-2 font-body text-white/60">
+          <p className="mt-3 font-body text-white/70 text-sm md:text-base">
             Sign in to access the Awahouse control panel.
           </p>
         </div>
