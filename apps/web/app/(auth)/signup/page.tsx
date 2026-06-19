@@ -13,6 +13,27 @@ import { trpc } from '@/lib/trpc/react';
 import { useAuthStore } from '@/hooks/useAuthStore';
 import { createAnonSupabaseClient } from '@/lib/auth/supabase';
 
+/**
+ * Extracts a human-readable message from tRPC / network errors.
+ * Priority: tRPC shape message → data message → err.message → fallback
+ */
+function extractError(err: unknown, fallback = 'Something went wrong. Please try again.'): string {
+  if (!err) return fallback;
+  const e = err as any;
+  // tRPC error shape
+  const trpcMsg: string | undefined =
+    e?.shape?.message ||
+    e?.data?.message ||
+    e?.cause?.message;
+  if (trpcMsg) return trpcMsg;
+  // Standard Error
+  const msg: string | undefined = e?.message;
+  if (!msg || msg === 'Failed to fetch' || msg === 'Load failed' || msg === 'NetworkError') {
+    return 'Network error — please check your connection and try again.';
+  }
+  return msg;
+}
+
 function AuthPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -55,29 +76,34 @@ function AuthPage() {
   ];
 
   const handleSendOtp = async () => {
+    setError('');
+    const isPasswordValid = passwordRequirements.every((req) => req.test(form.password));
+    if (!isPasswordValid) {
+      setError('Please meet all password requirements');
+      return;
+    }
+    if (!form.email || !form.email.includes('@')) {
+      setError('Please enter a valid email address');
+      return;
+    }
     try {
-      setError('');
-      const isPasswordValid = passwordRequirements.every((req) => req.test(form.password));
-      if (!isPasswordValid) {
-        setError('Please meet all password requirements');
-        return;
-      }
-      if (!form.email || !form.email.includes('@')) {
-        setError('Please enter a valid email address');
-        return;
-      }
       await sendOtpMutation.mutateAsync({
         email: form.email,
         role: (pendingRole as 'tenant' | 'landlord' | 'agent') ?? 'tenant',
       });
       setStage('otp');
-    } catch (err: any) {
-      // If the email is already registered, switch to login tab automatically
-      if (err?.data?.code === 'CONFLICT' || err?.message?.includes('already exists')) {
+    } catch (err: unknown) {
+      const e = err as any;
+      const code: string = e?.data?.code ?? e?.shape?.data?.code ?? '';
+      if (code === 'CONFLICT' || extractError(err).toLowerCase().includes('already exists')) {
         setActiveTab('login');
         setError('This email is already registered. Please log in instead.');
+      } else if (code === 'TOO_MANY_REQUESTS') {
+        // Email was already sent on a previous attempt — go to OTP stage
+        setStage('otp');
+        setError('A code was already sent to your email. Please enter it below.');
       } else {
-        setError(err?.message ?? 'Something went wrong');
+        setError(extractError(err));
       }
     }
   };
@@ -110,8 +136,8 @@ function AuthPage() {
           router.push('/verify-nin');
         }
       }
-    } catch (err: any) {
-      setError(err?.message ?? 'Failed to verify OTP');
+    } catch (err: unknown) {
+      setError(extractError(err, 'Failed to verify code. Please try again.'));
     }
   };
 
@@ -150,9 +176,8 @@ function AuthPage() {
           router.push('/explore');
         }
       }
-    } catch (err: any) {
-      const msg: string = err?.message ?? 'Sign in failed';
-      // Supabase returns this for invalid password / unconfirmed email
+    } catch (err: unknown) {
+      const msg = extractError(err, 'Sign in failed. Please try again.');
       if (msg.toLowerCase().includes('invalid login credentials') || msg.toLowerCase().includes('invalid email or password')) {
         setError('Incorrect email or password. If you signed up with Google, use the "Continue with Google" button below.');
       } else if (msg.toLowerCase().includes('email not confirmed')) {
@@ -188,8 +213,8 @@ function AuthPage() {
         setError(error.message);
         setGoogleLoading(false);
       }
-    } catch (err: any) {
-      setError(err?.message ?? 'Google sign-in failed');
+    } catch (err: unknown) {
+      setError(extractError(err, 'Google sign-in failed. Please try again.'));
       setGoogleLoading(false);
     }
   };
