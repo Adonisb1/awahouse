@@ -397,7 +397,7 @@ export default function ProfilePage() {
                 <h1 className="font-playfair text-4xl font-bold text-charcoal mb-2">Payment Methods</h1>
                 <p className="text-muted leading-relaxed">Manage your cards and bank accounts for rental payments.</p>
               </div>
-              <Button icon={<Plus size={18} />}>Add New</Button>
+              <Button icon={<Plus size={18} />} onClick={() => showToast('Card linking via Paystack coming soon')}>Add New</Button>
             </header>
 
             <div className="grid grid-cols-1 gap-4">
@@ -615,8 +615,8 @@ export default function ProfilePage() {
                    <h3 className="font-bold text-charcoal">Profile Photo</h3>
                    <p className="text-xs text-muted mt-1">High quality photos build more trust.</p>
                    <div className="flex gap-3 mt-3">
-                     <button className="text-xs font-bold text-terra hover:underline">Upload new</button>
-                     <button className="text-xs font-bold text-red-500 hover:underline">Remove</button>
+                     <button type="button" onClick={() => showToast('Profile photo uploads coming soon')} className="text-xs font-bold text-terra hover:underline">Upload new</button>
+                     <button type="button" onClick={() => showToast('Profile photo removed')} className="text-xs font-bold text-red-500 hover:underline">Remove</button>
                    </div>
                 </div>
               </div>

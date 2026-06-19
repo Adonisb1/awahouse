@@ -37,7 +37,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
               onChangeValue?.(e.target.value);
             }}
             className={cn(
-              'h-[52px] w-full rounded-input border border-outline-variant bg-white px-4 font-sans transition-all duration-200 focus:border-terra-dark focus:ring-0 outline-none',
+              'h-[52px] w-full rounded-input border border-outline-variant bg-white px-4 font-sans transition-all duration-200 focus:border-terra-dark focus:ring-0 outline-none disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed disabled:border-outline-variant/50',
               error && 'border-red-400',
               prefix && 'pl-14',
               suffix && 'pr-12',
