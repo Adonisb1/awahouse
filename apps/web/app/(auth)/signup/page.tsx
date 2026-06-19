@@ -55,6 +55,27 @@ function AuthPage() {
     password: '',
   });
 
+  React.useEffect(() => {
+    const saved = sessionStorage.getItem('awahouse_signup_state');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed.form) setForm(parsed.form);
+        if (parsed.activeTab) setActiveTab(parsed.activeTab);
+        if (parsed.stage) setStage(parsed.stage);
+        if (parsed.countryCode) setCountryCode(parsed.countryCode);
+      } catch (e) {
+        console.error('Failed to parse saved signup state', e);
+      }
+    }
+  }, []);
+
+  React.useEffect(() => {
+    sessionStorage.setItem('awahouse_signup_state', JSON.stringify({
+      form, activeTab, stage, countryCode
+    }));
+  }, [form, activeTab, stage, countryCode]);
+
   const COUNTRIES = [
     { code: '+234', label: '🇳🇬 Nigeria (+234)' },
     { code: '+1', label: '🇺🇸 USA/Canada (+1)' },
