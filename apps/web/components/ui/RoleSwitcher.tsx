@@ -16,7 +16,7 @@ const rolePaths: Record<string, string> = {
   tenant: '/explore',
   landlord: '/landlord',
   agent: '/agent',
-  admin: '/admin/dashboard',
+  admin: '/verifications',
 };
 
 export function RoleSwitcher() {
