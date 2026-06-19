@@ -270,10 +270,10 @@ export default function ProfilePage() {
                     <span className="font-mono text-[10px] uppercase text-muted tracking-widest">Full Name</span>
                     <span className="font-bold text-charcoal">{profile?.firstName} {profile?.lastName}</span>
                   </div>
-                  <div className="flex flex-col gap-1">
+                  <div className="flex flex-col gap-1 min-w-0">
                     <span className="font-mono text-[10px] uppercase text-muted tracking-widest">Email Address</span>
-                    <span className="font-bold text-charcoal flex items-center gap-2">
-                      <Mail size={14} className="text-muted" />
+                    <span className="font-bold text-charcoal flex items-start gap-2 break-all">
+                      <Mail size={14} className="text-muted shrink-0 mt-1" />
                       {profile?.email}
                     </span>
                   </div>

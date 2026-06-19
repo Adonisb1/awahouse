@@ -115,8 +115,8 @@ export function ProfileSidebarLayout({
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 min-w-0 bg-sand p-6 md:p-10 lg:p-16">
-        <div className="max-w-4xl mx-auto h-full animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <main className="flex-1 min-w-0 bg-sand p-6 md:p-10 xl:p-16">
+        <div className="w-full max-w-6xl mx-auto h-full animate-in fade-in slide-in-from-bottom-4 duration-500">
           {children}
         </div>
       </main>
