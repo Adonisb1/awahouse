@@ -9,6 +9,7 @@ import { notificationRouter } from './notifications';
 import { rentInstalmentsRouter } from './rentInstalments';
 import { rentScoreRouter } from './rentScore';
 import { agentRouter } from './agent';
+import { paymentsRouter } from './payments';
 
 export const appRouter = router({
   auth: authRouter,
@@ -21,6 +22,7 @@ export const appRouter = router({
   notifications: notificationRouter,
   rentInstalments: rentInstalmentsRouter,
   rentScore: rentScoreRouter,
+  payments: paymentsRouter,
 });
 
 export type AppRouter = typeof appRouter;

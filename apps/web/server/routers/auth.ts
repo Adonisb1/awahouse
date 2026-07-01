@@ -6,7 +6,7 @@ import {
   switchRoleInput, updateProfileInput, signInWithGoogleInput,
 } from '../schemas/auth';
 import { createServerSupabaseClient } from '@/lib/auth/supabase';
-import { createOtp, verifyOtp, canRequestOtp } from '@/lib/auth/otp';
+import { createOtp, verifyOtp, canRequestOtp, createPhoneOtp, verifyPhoneOtp, canRequestPhoneOtp } from '@/lib/auth/otp';
 import { encrypt, decrypt } from '@/lib/crypto/encrypt';
 import { verificationService } from '../services/VerificationService';
 import { resendClient } from '@/lib/resend/client';
@@ -181,6 +181,49 @@ export const authRouter = router({
       };
     }),
 
+  sendPhoneOtp: authedProcedure
+    .input(z.object({ phone: z.string().regex(/^\+[1-9]\d{6,14}$/) }))
+    .mutation(async ({ ctx, input }) => {
+      if (!await canRequestPhoneOtp(input.phone)) {
+        throw new TRPCError({ code: 'TOO_MANY_REQUESTS', message: 'Too many OTP requests. Please wait.' });
+      }
+
+      const existingUser = await prisma.user.findFirst({
+        where: { phone: input.phone, NOT: { id: ctx.userId! } },
+      });
+      if (existingUser) {
+        throw new TRPCError({ code: 'CONFLICT', message: 'This phone number is already linked to another account.' });
+      }
+
+      const code = await createPhoneOtp(input.phone);
+
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`═══════════════════════════════════════`);
+        console.log(`  📱 [DEV ONLY] Phone OTP for ${input.phone}: ${code}`);
+        console.log(`═══════════════════════════════════════`);
+      }
+
+      const { termiiClient } = await import('@/lib/termii/client');
+      await termiiClient.sendSms(input.phone, `Your Awahouse verification code is: ${code}. It expires in 5 minutes.`);
+
+      return { success: true };
+    }),
+
+  verifyPhoneOtp: authedProcedure
+    .input(z.object({ phone: z.string().regex(/^\+[1-9]\d{6,14}$/), code: z.string().length(6) }))
+    .mutation(async ({ ctx, input }) => {
+      if (!await verifyPhoneOtp(input.phone, input.code)) {
+        throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Invalid or expired OTP' });
+      }
+
+      await prisma.user.update({
+        where: { id: ctx.userId! },
+        data: { phone: input.phone, phoneVerified: true },
+      });
+
+      return { success: true };
+    }),
+
   signIn: publicProcedure
     .input(signInInput)
     .mutation(async ({ input }) => {
@@ -308,6 +351,7 @@ export const authRouter = router({
         id: user.id,
         email: user.email,
         phone: user.phone,
+        phoneVerified: user.phoneVerified,
         firstName: user.firstName,
         lastName: user.lastName,
         avatarUrl: user.avatarUrl,

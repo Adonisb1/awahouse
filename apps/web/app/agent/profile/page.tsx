@@ -34,6 +34,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { VerifiedBadge } from '@/components/ui/VerifiedBadge';
 import { useAuthStore, type Role } from '@/hooks/useAuthStore';
+import { AvatarUpload } from '@/components/ui/AvatarUpload';
 import { trpc } from '@/lib/trpc/react';
 import { ProfileSidebarLayout } from '@/components/layout/ProfileSidebarLayout';
 import { NotificationBell } from '@/components/layout/NotificationBell';
@@ -221,6 +222,15 @@ export default function AgentProfilePage() {
                       {profile?.email}
                     </span>
                   </div>
+                  {profile?.phone && (
+                    <div className="flex flex-col gap-1">
+                      <span className="font-mono text-[10px] uppercase text-muted tracking-widest">Phone</span>
+                      <span className="font-bold text-charcoal flex items-center gap-2">
+                        <Phone size={14} className="text-muted" />
+                        {profile.phone}
+                      </span>
+                    </div>
+                  )}
                 </div>
               </section>
 
@@ -510,25 +520,12 @@ export default function AgentProfilePage() {
             </header>
 
             <section className="bg-white rounded-card p-8 border border-outline-variant/30 shadow-sm space-y-8">
-              <div className="flex items-center gap-6 pb-6 border-b border-outline-variant/30">
-                <div className="w-20 h-20 rounded-full bg-sand flex items-center justify-center text-terra relative group cursor-pointer overflow-hidden shadow-inner">
-                   {profile?.avatarUrl ? (
-                     <img src={profile.avatarUrl} alt="" className="w-full h-full object-cover" />
-                   ) : (
-                     <User size={32} />
-                   )}
-                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white transition-opacity">
-                     <Edit2 size={16} />
-                   </div>
-                </div>
-                <div>
-                   <h3 className="font-bold text-charcoal">Agent Avatar</h3>
-                   <p className="text-xs text-muted mt-1">High quality photos build more trust.</p>
-                   <div className="flex gap-3 mt-3">
-                     <button className="text-xs font-bold text-terra hover:underline">Upload new</button>
-                     <button className="text-xs font-bold text-red-500 hover:underline">Remove</button>
-                   </div>
-                </div>
+              <div className="pb-6 border-b border-outline-variant/30">
+                <AvatarUpload
+                  currentUrl={profile?.avatarUrl}
+                  onUpload={(url) => updateProfileMutation.mutate({ avatarUrl: url })}
+                  onRemove={() => updateProfileMutation.mutate({ avatarUrl: '' })}
+                />
               </div>
 
               <div className="grid grid-cols-2 gap-4">

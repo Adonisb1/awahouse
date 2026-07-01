@@ -33,6 +33,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { VerifiedBadge } from '@/components/ui/VerifiedBadge';
 import { useAuthStore, type Role } from '@/hooks/useAuthStore';
+import { AvatarUpload } from '@/components/ui/AvatarUpload';
 import { trpc } from '@/lib/trpc/react';
 import { ProfileSidebarLayout } from '@/components/layout/ProfileSidebarLayout';
 import { KoboDisplay } from '@/components/ui/KoboDisplay';
@@ -367,85 +368,38 @@ export default function ProfilePage() {
                 </button>
                 
                 <button 
-                  onClick={() => router.push('/profile')} // Placeholder for phone verification or settings
+                  onClick={() => router.push('/verify-phone')}
                   className="p-5 rounded-xl bg-white border border-outline-variant/30 hover:border-terra/40 hover:shadow-md hover:-translate-y-0.5 transition-all text-left flex flex-col gap-3 group"
                 >
                   <div className="flex items-center justify-between w-full">
                     <div className="w-10 h-10 rounded-full bg-sand flex items-center justify-center text-terra shadow-sm">
                       <Smartphone size={18} />
                     </div>
-                    <Check size={18} className="text-success" />
+                    {profile?.phoneVerified ? (
+                      <Check size={18} className="text-success" />
+                    ) : (
+                      <ChevronRight size={18} className="text-muted group-hover:text-terra transition-colors" />
+                    )}
                   </div>
                   <div>
                     <p className="font-bold text-base text-charcoal">Phone Number</p>
-                    <p className="text-xs text-muted mt-1 leading-relaxed">Primary device linked and verified.</p>
+                    <p className="text-xs text-muted mt-1 leading-relaxed">
+                      {profile?.phoneVerified
+                        ? `${profile.phone} — Verified`
+                        : profile?.phone
+                          ? `${profile.phone} — Tap to verify`
+                          : 'Add and verify your phone number'}
+                    </p>
                   </div>
                 </button>
 
-                <button 
-                  onClick={() => router.push('/profile')} // Placeholder for address verification
-                  className="p-5 rounded-xl bg-white border border-outline-variant/30 hover:border-terra/40 hover:shadow-md hover:-translate-y-0.5 transition-all text-left flex flex-col gap-3 group"
-                >
-                  <div className="flex items-center justify-between w-full">
-                    <div className="w-10 h-10 rounded-full bg-sand flex items-center justify-center text-muted shadow-sm group-hover:text-terra transition-colors">
-                      <Building size={18} />
-                    </div>
-                    <ChevronRight size={18} className="text-muted group-hover:text-terra transition-colors" />
-                  </div>
-                  <div>
-                    <p className="font-bold text-base text-charcoal">Address History</p>
-                    <p className="text-xs text-muted mt-1 leading-relaxed">Verification optional. Add your previous addresses.</p>
-                  </div>
-                </button>
+
               </div>
             </section>
           </div>
         )}
 
-        {activeTab === 'payments' && (
-          <div className="space-y-8 max-w-2xl">
-            <header className="flex justify-between items-end">
-              <div>
-                <h1 className="font-playfair text-4xl font-bold text-charcoal mb-2">Payment Methods</h1>
-                <p className="text-muted leading-relaxed">Manage your cards and bank accounts for rental payments.</p>
-              </div>
-              <Button icon={<Plus size={18} />} onClick={() => showToast('Card linking via Paystack coming soon')}>Add New</Button>
-            </header>
-
-            <div className="grid grid-cols-1 gap-4">
-               <div className="p-6 rounded-card bg-charcoal text-white relative overflow-hidden shadow-lg">
-                  <div className="absolute top-0 right-0 p-6 opacity-20">
-                    <CreditCard size={120} />
-                  </div>
-                  <div className="relative z-10 flex flex-col h-full">
-                     <div className="flex justify-between items-start mb-10">
-                        <span className="font-mono text-xs uppercase tracking-widest text-white/60">Primary Card</span>
-                        <div className="w-10 h-6 bg-white/20 rounded backdrop-blur-sm" />
-                     </div>
-                     <p className="font-mono text-xl tracking-[0.2em] mb-6">**** **** **** 4242</p>
-                     <div className="flex justify-between items-end mt-auto">
-                        <div>
-                           <p className="font-mono text-[9px] uppercase text-white/40 mb-1">Card Holder</p>
-                           <p className="font-bold text-sm uppercase">{profile?.firstName} {profile?.lastName}</p>
-                        </div>
-                        <div>
-                           <p className="font-mono text-[9px] uppercase text-white/40 mb-1">Expires</p>
-                           <p className="font-bold text-sm">12/26</p>
-                        </div>
-                     </div>
-                  </div>
-               </div>
-               
-               <div className="p-6 rounded-card border-2 border-dashed border-outline-variant/30 flex flex-col items-center justify-center py-12 text-center">
-                  <div className="w-12 h-12 rounded-full bg-sand flex items-center justify-center text-muted/30 mb-4">
-                    <Plus size={24} />
-                  </div>
-                  <h3 className="font-bold text-charcoal">Link a new card</h3>
-                  <p className="text-xs text-muted max-w-[200px] mt-1">Secured by Paystack. Your details are never stored on our servers.</p>
-               </div>
-            </div>
-          </div>
-        )}
+        {activeTab === 'payments' && <PaymentsTab profile={profile} />}
 
         {activeTab === 'notifications' && (
           <div className="space-y-8">
@@ -612,25 +566,12 @@ export default function ProfilePage() {
             </header>
 
             <section className="bg-white rounded-card p-8 border border-outline-variant/30 shadow-sm space-y-8">
-              <div className="flex items-center gap-6 pb-6 border-b border-outline-variant/30">
-                <div className="w-20 h-20 rounded-full bg-sand flex items-center justify-center text-terra relative group cursor-pointer overflow-hidden shadow-inner">
-                   {profile?.avatarUrl ? (
-                     <img src={profile.avatarUrl} alt="" className="w-full h-full object-cover" />
-                   ) : (
-                     <User size={32} />
-                   )}
-                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white transition-opacity">
-                     <Edit2 size={16} />
-                   </div>
-                </div>
-                <div>
-                   <h3 className="font-bold text-charcoal">Profile Photo</h3>
-                   <p className="text-xs text-muted mt-1">High quality photos build more trust.</p>
-                   <div className="flex gap-3 mt-3">
-                     <button type="button" onClick={() => showToast('Profile photo uploads coming soon')} className="text-xs font-bold text-terra hover:underline">Upload new</button>
-                     <button type="button" onClick={() => showToast('Profile photo removed')} className="text-xs font-bold text-red-500 hover:underline">Remove</button>
-                   </div>
-                </div>
+              <div className="pb-6 border-b border-outline-variant/30">
+                <AvatarUpload
+                  currentUrl={profile?.avatarUrl}
+                  onUpload={(url) => updateProfileMutation.mutate({ avatarUrl: url })}
+                  onRemove={() => updateProfileMutation.mutate({ avatarUrl: '' })}
+                />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
@@ -745,5 +686,81 @@ export default function ProfilePage() {
         <BottomNav role={(activeRole?.toUpperCase() ?? 'TENANT') as UserRole} />
       </div>
     </>
+  );
+}
+
+function PaymentsTab({ profile }: { profile: { firstName?: string | null; lastName?: string | null } | undefined }) {
+  const { data: cards, refetch } = trpc.payments.listCards.useQuery();
+  const removeCardMutation = trpc.payments.removeCard.useMutation({ onSuccess: () => refetch() });
+  const setDefaultMutation = trpc.payments.setDefault.useMutation({ onSuccess: () => refetch() });
+
+  return (
+    <div className="space-y-8 max-w-2xl">
+      <header>
+        <h1 className="font-playfair text-4xl font-bold text-charcoal mb-2">Payment Methods</h1>
+        <p className="text-muted leading-relaxed">Manage your cards for rental payments.</p>
+      </header>
+
+      <div className="grid grid-cols-1 gap-4">
+        {cards && cards.length > 0 ? (
+          cards.map((card) => (
+            <div key={card.id} className={cn(
+              "p-6 rounded-card relative overflow-hidden shadow-lg",
+              card.isDefault ? "bg-charcoal text-white" : "bg-white border border-outline-variant text-charcoal"
+            )}>
+              <div className="absolute top-0 right-0 p-6 opacity-20">
+                <CreditCard size={120} />
+              </div>
+              <div className="relative z-10 flex flex-col h-full">
+                <div className="flex justify-between items-start mb-10">
+                  <span className={cn("font-mono text-xs uppercase tracking-widest", card.isDefault ? "text-white/60" : "text-muted")}>
+                    {card.isDefault ? 'Primary Card' : card.brand}
+                  </span>
+                  <div className="flex gap-2">
+                    {!card.isDefault && (
+                      <button
+                        onClick={() => setDefaultMutation.mutate({ cardId: card.id })}
+                        className="text-xs font-bold text-terra hover:underline"
+                      >
+                        Set default
+                      </button>
+                    )}
+                    <button
+                      onClick={() => {
+                        if (confirm('Remove this card?')) removeCardMutation.mutate({ cardId: card.id });
+                      }}
+                      className={cn("text-xs font-bold hover:underline", card.isDefault ? "text-white/60" : "text-red-500")}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </div>
+                <p className={cn("font-mono text-xl tracking-[0.2em] mb-6", !card.isDefault && "text-charcoal")}>
+                  **** **** **** {card.last4}
+                </p>
+                <div className="flex justify-between items-end mt-auto">
+                  <div>
+                    <p className={cn("font-mono text-[9px] uppercase mb-1", card.isDefault ? "text-white/40" : "text-muted")}>Card Holder</p>
+                    <p className="font-bold text-sm uppercase">{profile?.firstName} {profile?.lastName}</p>
+                  </div>
+                  <div>
+                    <p className={cn("font-mono text-[9px] uppercase mb-1", card.isDefault ? "text-white/40" : "text-muted")}>Expires</p>
+                    <p className="font-bold text-sm">{String(card.expMonth).padStart(2, '0')}/{String(card.expYear).slice(-2)}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))
+        ) : null}
+
+        <button className="p-6 rounded-card border-2 border-dashed border-outline-variant/30 flex flex-col items-center justify-center py-12 text-center hover:border-terra/40 transition-colors">
+          <div className="w-12 h-12 rounded-full bg-sand flex items-center justify-center text-muted/30 mb-4">
+            <Plus size={24} />
+          </div>
+          <h3 className="font-bold text-charcoal">Link a new card</h3>
+          <p className="text-xs text-muted max-w-[200px] mt-1">Secured by Paystack. Your details are never stored on our servers.</p>
+        </button>
+      </div>
+    </div>
   );
 }

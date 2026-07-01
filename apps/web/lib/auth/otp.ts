@@ -109,3 +109,63 @@ export async function canRequestOtp(email: string): Promise<boolean> {
 export async function clearExpiredOtps(): Promise<void> {
   await prisma.otpCode.deleteMany({ where: { expiresAt: { lt: new Date() } } });
 }
+
+/** Creates a new OTP for the given phone number. Returns the plaintext code. */
+export async function createPhoneOtp(phone: string): Promise<string> {
+  const code = generateCode();
+  const codeHash = hashCode(code);
+  const expiresAt = new Date(Date.now() + OTP_TTL_MS);
+
+  await prisma.otpCode.deleteMany({ where: { phone } });
+  await prisma.otpCode.create({ data: { phone, codeHash, expiresAt } });
+
+  return code;
+}
+
+/** Verifies the phone OTP. Returns true on success. */
+export async function verifyPhoneOtp(phone: string, code: string): Promise<boolean> {
+  const record = await prisma.otpCode.findFirst({
+    where: { phone },
+    orderBy: { createdAt: 'desc' },
+  });
+
+  if (!record) return false;
+
+  if (record.expiresAt < new Date()) {
+    await prisma.otpCode.deleteMany({ where: { phone } });
+    return false;
+  }
+
+  if (record.attempts >= MAX_ATTEMPTS) {
+    await prisma.otpCode.deleteMany({ where: { phone } });
+    return false;
+  }
+
+  await prisma.otpCode.update({
+    where: { id: record.id },
+    data: { attempts: { increment: 1 } },
+  });
+
+  if (record.codeHash !== hashCode(code)) return false;
+
+  await prisma.otpCode.deleteMany({ where: { phone } });
+  return true;
+}
+
+/** Returns true if the user can request a new phone OTP (60s cooldown). */
+export async function canRequestPhoneOtp(phone: string): Promise<boolean> {
+  const record = await prisma.otpCode.findFirst({
+    where: { phone },
+    orderBy: { createdAt: 'desc' },
+  });
+
+  if (!record) return true;
+
+  if (record.expiresAt < new Date()) {
+    await prisma.otpCode.deleteMany({ where: { phone } });
+    return true;
+  }
+
+  const elapsed = Date.now() - record.createdAt.getTime();
+  return elapsed >= RATE_LIMIT_MS;
+}

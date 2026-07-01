@@ -87,9 +87,10 @@ enum RentScoreEventType {
 }
 
 model User {
-  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  phone      String?  @unique
-  email      String   @unique
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  phone         String?  @unique
+  phoneVerified Boolean  @default(false) @map("phone_verified")
+  email         String   @unique
   roles      UserRole[]
   activeRole UserRole @default(tenant) @map("active_role")
   firstName  String?  @map("first_name")
@@ -115,6 +116,7 @@ model User {
   rentScoreEvents  RentScoreEvent[]
 
   landlordProfile LandlordProfile?
+  savedCards      SavedCard[]
 
   @@map("users")
 }
@@ -132,6 +134,24 @@ model LandlordProfile {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("landlord_profiles")
+}
+
+model SavedCard {
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId           String   @map("user_id") @db.Uuid
+  authorizationCode String  @map("authorization_code")
+  last4            String   @db.VarChar(4)
+  expMonth         Int      @map("exp_month")
+  expYear          Int      @map("exp_year")
+  brand            String
+  bank             String?
+  isDefault        Boolean  @default(false) @map("is_default")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, authorizationCode])
+  @@map("saved_cards")
 }
 
 model Property {
@@ -359,12 +379,14 @@ model RentScoreEvent {
 
 model OtpCode {
   id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  email      String
+  email      String?
+  phone      String?
   codeHash   String   @map("code_hash")
   attempts   Int      @default(0)
   expiresAt  DateTime @map("expires_at")
   createdAt  DateTime @default(now()) @map("created_at")
 
   @@index([email])
+  @@index([phone])
   @@map("otp_codes")
 }
