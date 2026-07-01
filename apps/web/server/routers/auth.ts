@@ -4,6 +4,7 @@ import { router, publicProcedure, authedProcedure } from '../trpc';
 import {
   sendOtpInput, verifyOtpInput, signInInput,
   switchRoleInput, updateProfileInput, signInWithGoogleInput,
+  syncGoogleUserInput,
 } from '../schemas/auth';
 import { createServerSupabaseClient } from '@/lib/auth/supabase';
 import { createOtp, verifyOtp, canRequestOtp, createPhoneOtp, verifyPhoneOtp, canRequestPhoneOtp } from '@/lib/auth/otp';
@@ -473,6 +474,41 @@ export const authRouter = router({
             where: { id: dbUser.id },
             data: { avatarUrl: user.user_metadata.avatar_url },
           });
+        }
+      }
+
+      return {
+        success: true,
+        userId: dbUser.id,
+        roles: dbUser.roles,
+        activeRole: dbUser.activeRole,
+      };
+    }),
+
+  syncGoogleUser: publicProcedure
+    .input(syncGoogleUserInput)
+    .mutation(async ({ input }) => {
+      let dbUser = await prisma.user.findUnique({ where: { email: input.email } });
+
+      if (!dbUser) {
+        dbUser = await prisma.user.create({
+          data: {
+            id: crypto.randomUUID(),
+            email: input.email,
+            firstName: input.firstName || undefined,
+            lastName: input.lastName || undefined,
+            avatarUrl: input.avatarUrl || undefined,
+            roles: [input.role],
+            activeRole: input.role,
+          },
+        });
+      } else {
+        const updates: Record<string, unknown> = {};
+        if (input.firstName && !dbUser.firstName) updates.firstName = input.firstName;
+        if (input.lastName && !dbUser.lastName) updates.lastName = input.lastName;
+        if (input.avatarUrl && !dbUser.avatarUrl) updates.avatarUrl = input.avatarUrl;
+        if (Object.keys(updates).length > 0) {
+          dbUser = await prisma.user.update({ where: { id: dbUser.id }, data: updates });
         }
       }
 

@@ -57,8 +57,17 @@ export const updateProfileInput = z.object({
   bankAccount: z.string().max(10).optional(),
 });
 
+export const syncGoogleUserInput = z.object({
+  email: z.string().email('Please enter a valid email address'),
+  firstName: z.string().max(100).optional(),
+  lastName: z.string().max(100).optional(),
+  avatarUrl: z.string().url().optional(),
+  role: z.enum(['tenant', 'landlord', 'agent']).default('tenant'),
+});
+
 export type SendOtpInput = z.infer<typeof sendOtpInput>;
 export type VerifyOtpInput = z.infer<typeof verifyOtpInput>;
 export type SignInInput = z.infer<typeof signInInput>;
 export type SignInWithGoogleInput = z.infer<typeof signInWithGoogleInput>;
 export type SwitchRoleInput = z.infer<typeof switchRoleInput>;
+export type SyncGoogleUserInput = z.infer<typeof syncGoogleUserInput>;
